@@ -3,9 +3,9 @@ package com.qendolin.betterclouds.clouds.shaders;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.qendolin.betterclouds.Main;
 import com.qendolin.betterclouds.mixin.ShaderProgramAccessor;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.InvalidHierarchicalFileException;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.ChainedJsonException;
+import net.minecraft.server.packs.resources.ResourceManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -23,7 +23,7 @@ public class Shader implements AutoCloseable {
 
     protected int programId;
 
-    public Shader(ResourceManager resMan, Identifier vshId, Identifier fshId, Map<String, String> defs) throws IOException {
+    public Shader(ResourceManager resMan, ResourceLocation vshId, ResourceLocation fshId, Map<String, String> defs) throws IOException {
         this.defs = defs;
         int vsh = compileShader(GL_VERTEX_SHADER, vshId, resMan);
         int fsh = compileShader(GL_FRAGMENT_SHADER, fshId, resMan);
@@ -45,14 +45,14 @@ public class Shader implements AutoCloseable {
         GlStateManager.glDeleteShader(fsh);
     }
 
-    protected int compileShader(int type, Identifier resource, ResourceManager resMan) throws IOException {
+    protected int compileShader(int type, ResourceLocation resource, ResourceManager resMan) throws IOException {
         String shaderSrc;
         try {
-            InputStream stream = resMan.getResourceOrThrow(resource).getInputStream();
+            InputStream stream = resMan.getResourceOrThrow(resource).open();
             shaderSrc = IOUtils.toString(stream, StandardCharsets.UTF_8);
         } catch (IOException ex) {
-            InvalidHierarchicalFileException fileEx = InvalidHierarchicalFileException.wrap(ex);
-            fileEx.addInvalidFile(resource.toString());
+            ChainedJsonException fileEx = ChainedJsonException.forException(ex);
+            fileEx.setFilenameAndFlush(resource.toString());
             throw fileEx;
         }
         for (Map.Entry<String, String> entry : defs.entrySet()) {
@@ -63,8 +63,8 @@ public class Shader implements AutoCloseable {
         GlStateManager.glCompileShader(id);
         if (GlStateManager.glGetShaderi(id, GL_COMPILE_STATUS) == 0) {
             String log = StringUtils.trim(GlStateManager.glGetShaderInfoLog(id, 32768));
-            InvalidHierarchicalFileException parseEx = new InvalidHierarchicalFileException("Couldn't compile shader program (" + resource + "): \n" + log + "\n\nShader Source: \n" + shaderSrc);
-            parseEx.addInvalidFile(resource.toString());
+            ChainedJsonException parseEx = new ChainedJsonException("Couldn't compile shader program (" + resource + "): \n" + log + "\n\nShader Source: \n" + shaderSrc);
+            parseEx.setFilenameAndFlush(resource.toString());
             throw parseEx;
         }
         return id;

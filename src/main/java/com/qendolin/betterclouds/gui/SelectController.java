@@ -1,6 +1,8 @@
 package com.qendolin.betterclouds.gui;
 
 import com.google.common.collect.ImmutableList;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.isxander.yacl3.api.Controller;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.utils.Dimension;
@@ -8,15 +10,15 @@ import dev.isxander.yacl3.gui.AbstractWidget;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.ControllerWidget;
 import dev.isxander.yacl3.gui.utils.GuiUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +27,12 @@ import java.util.function.BiFunction;
 public class SelectController<T> implements Controller<Integer> {
 
     private final Option<Integer> option;
-    private final BiFunction<Integer, T, Text> valueFormatter;
+    private final BiFunction<Integer, T, Component> valueFormatter;
     private List<T> values;
     private final List<T> refValues;
-    private List<Text> formattedValues;
+    private List<Component> formattedValues;
 
-    public SelectController(Option<Integer> option, List<T> values, BiFunction<Integer, T, Text> valueFormatter) {
+    public SelectController(Option<Integer> option, List<T> values, BiFunction<Integer, T, Component> valueFormatter) {
         this.option = option;
         this.valueFormatter = valueFormatter;
         this.refValues = values;
@@ -55,7 +57,7 @@ public class SelectController<T> implements Controller<Integer> {
         option.requestSet(index);
     }
 
-    public List<Text> formatValues() {
+    public List<Component> formatValues() {
         formattedValues.set(getSelectedIndex(), formatValue());
         return ImmutableList.copyOf(formattedValues);
     }
@@ -65,7 +67,7 @@ public class SelectController<T> implements Controller<Integer> {
     }
 
     @Override
-    public Text formatValue() {
+    public Component formatValue() {
         int index = option.pendingValue();
         return valueFormatter.apply(index, values.get(index));
     }
@@ -87,8 +89,8 @@ public class SelectController<T> implements Controller<Integer> {
         private Dimension<Integer> arrowBounds;
         private boolean mouseInteracted;
         private long hoveringStart = 0;
-        protected static final Text UP_ARROW = Text.literal("▲");
-        protected static final Text DOWN_ARROW = Text.literal("▼");
+        protected static final Component UP_ARROW = Component.literal("▲");
+        protected static final Component DOWN_ARROW = Component.literal("▼");
 
         public SelectElement(SelectController<T> control, YACLScreen screen, Dimension<Integer> dim) {
             super(control, screen, dim);
@@ -113,7 +115,7 @@ public class SelectController<T> implements Controller<Integer> {
         }
 
         protected int getLineHeight() {
-            return textRenderer.fontHeight + getLinePadding();
+            return textRenderer.lineHeight + getLinePadding();
         }
 
         protected int getLinePadding() {
@@ -133,10 +135,10 @@ public class SelectController<T> implements Controller<Integer> {
         }
 
         @Override
-        public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-            super.render(context, mouseX, mouseY, delta);
+        public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+//            super.render(context, mouseX, mouseY, delta);
             if (isHovered() && hoveringStart == 0) {
-                hoveringStart = Util.getEpochTimeMs();
+                hoveringStart = Util.getEpochMillis();
             } else if (!isHovered()) {
                 hoveringStart = 0;
             }
@@ -146,19 +148,19 @@ public class SelectController<T> implements Controller<Integer> {
         }
 
         @Override
-        protected void drawHoveredControl(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawHoveredControl(GuiGraphics context, int mouseX, int mouseY, float delta) {
             Dimension<Integer> dim = getDimension();
-            MatrixStack matrices = context.getMatrices();
-            matrices.push();
-            int arrowWidth = textRenderer.getWidth(UP_ARROW);
+            PoseStack matrices = context.pose();
+            matrices.pushPose();
+            int arrowWidth = textRenderer.width(UP_ARROW);
             matrices.translate(getDimension().xLimit() - getXPadding() - ARROW_SPACE / 2f, dim.y() + dim.height() / 2f, 0);
             matrices.scale(1.5f, 1f, 1);
             int hoveredArrow = getHoveredArrow(mouseX, mouseY);
-            context.drawText(textRenderer, UP_ARROW, -arrowWidth / 2, -textRenderer.fontHeight + 1, 0xff404040, false);
-            context.drawText(textRenderer, DOWN_ARROW, -arrowWidth / 2, 1, 0xff404040, false);
-            context.drawText(textRenderer, UP_ARROW, -arrowWidth / 2, -textRenderer.fontHeight + 2, hoveredArrow == -1 ? -1 : 0xffc0c0c0, false);
-            context.drawText(textRenderer, DOWN_ARROW, -arrowWidth / 2, 0, hoveredArrow == 1 ? -1 : 0xffc0c0c0, false);
-            matrices.pop();
+            context.drawString(textRenderer, UP_ARROW, -arrowWidth / 2, -textRenderer.lineHeight + 1, 0xff404040, false);
+            context.drawString(textRenderer, DOWN_ARROW, -arrowWidth / 2, 1, 0xff404040, false);
+            context.drawString(textRenderer, UP_ARROW, -arrowWidth / 2, -textRenderer.lineHeight + 2, hoveredArrow == -1 ? -1 : 0xffc0c0c0, false);
+            context.drawString(textRenderer, DOWN_ARROW, -arrowWidth / 2, 0, hoveredArrow == 1 ? -1 : 0xffc0c0c0, false);
+            matrices.popPose();
         }
 
         protected int getHoveredArrow(int mouseX, int mouseY) {
@@ -168,21 +170,21 @@ public class SelectController<T> implements Controller<Integer> {
         }
 
         @Override
-        protected void drawValueText(DrawContext context, int mouseX, int mouseY, float delta) {
-            context.getMatrices().push();
+        protected void drawValueText(GuiGraphics context, int mouseX, int mouseY, float delta) {
+            context.pose().pushPose();
             if (isHovered())
-                context.getMatrices().translate(-ARROW_SPACE - getXPadding(), 0, 0);
+                context.pose().translate(-ARROW_SPACE - getXPadding(), 0, 0);
             super.drawValueText(context, mouseX, mouseY, delta);
-            context.getMatrices().pop();
+            context.pose().popPose();
         }
 
-        protected void drawList(DrawContext context) {
+        protected void drawList(GuiGraphics context) {
             if ((!isMouseInteracted() && !isFocused()) || !isAvailable()) return;
 
-            context.getMatrices().push();
-            context.getMatrices().translate(0, 0, 100);
+            context.pose().pushPose();
+            context.pose().translate(0, 0, 100);
 
-            List<Text> values = control.formatValues();
+            List<Component> values = control.formatValues();
             Dimension<Integer> dim = getExpandedBounds();
 
             int padding = getLinePadding();
@@ -190,22 +192,22 @@ public class SelectController<T> implements Controller<Integer> {
             int lineHeight = getLineHeight();
             int selected = control.getSelectedIndex();
 
-            int indexFrom = MathHelper.clamp(selected - lines / 2, 0, values.size() - lines);
+            int indexFrom = Mth.clamp(selected - lines / 2, 0, values.size() - lines);
 
             context.fill(dim.x() + 1, dim.y() + 1, dim.xLimit() - 1, dim.yLimit() - 1, 0xb0000000);
             drawOutline(context, dim.x(), dim.y(), dim.xLimit(), dim.yLimit(), 1, -1);
 
             for (int line = 0; line < lines; line++) {
                 int i = indexFrom + line;
-                Text text = values.get(i);
-                int x = dim.xLimit() - textRenderer.getWidth(text) - getXPadding();
+                Component text = values.get(i);
+                int x = dim.xLimit() - textRenderer.width(text) - getXPadding();
                 int y = dim.y() + padding + lineHeight * line;
                 if (selected == i) {
                     context.fill(dim.x(), y - padding, dim.xLimit(), y + lineHeight - 1, 0x80ffffff);
                 }
-                context.drawTextWithShadow(textRenderer, text, x, y, getValueColor());
+                context.drawString(textRenderer, text, x, y, getValueColor(), true); //todo test if this has a shadow
             }
-            context.getMatrices().pop();
+            context.pose().popPose();
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -222,11 +224,11 @@ public class SelectController<T> implements Controller<Integer> {
         }
 
         @Override
-        protected Text getValueText() {
-            Text valueText = control.formatValue();
+        protected Component getValueText() {
+            Component valueText = control.formatValue();
             int maxWidth = getDimension().width() - getControlWidth() - getXPadding() - 7 - ARROW_SPACE;
             String shortened = GuiUtils.shortenString(valueText.getString(), textRenderer, maxWidth, "...");
-            return Text.literal(shortened)
+            return Component.literal(shortened)
                 .setStyle(valueText.getStyle());
         }
 
@@ -237,7 +239,7 @@ public class SelectController<T> implements Controller<Integer> {
 
         @Override
         protected int getUnhoveredControlWidth() {
-            return textRenderer.getWidth(control.option().changed() ? modifiedOptionName : control.option().name());
+            return textRenderer.width(control.option().changed() ? modifiedOptionName : control.option().name());
         }
 
         @Override
@@ -269,15 +271,25 @@ public class SelectController<T> implements Controller<Integer> {
             return false;
         }
 
+        @Override
+        public void setFocused(boolean p_265728_) {
+
+        }
+
+        @Override
+        public boolean isFocused() {
+            return false;
+        }
+
         public void cycle(int direction) {
-            MinecraftClient.getInstance().getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK.value(), 2.0F, 0.1f));
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 2.0F, 0.1f));
             control.cycle(direction);
         }
 
         @Override
         public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
             if (!isMouseOver(mouseX, mouseY) || !isAvailable()) return false;
-            if (hoveringStart == 0 || Util.getEpochTimeMs() - hoveringStart <= 100) return false;
+            if (hoveringStart == 0 || Util.getEpochMillis() - hoveringStart <= 100) return false;
             if (amount == 0) return false;
             cycle(amount > 0 ? -1 : 1);
             setMouseInteracted(true);
@@ -290,18 +302,25 @@ public class SelectController<T> implements Controller<Integer> {
                 return false;
 
             switch (keyCode) {
-                case InputUtil.GLFW_KEY_LEFT:
-                    cycle(-1);
-                    break;
-                case InputUtil.GLFW_KEY_RIGHT:
-                    cycle(1);
-                    break;
-                default:
+                case InputConstants.KEY_LEFT -> cycle(-1);
+                case InputConstants.KEY_RIGHT -> cycle(1);
+                default -> {
                     return false;
+                }
             }
 
             setFocused(true);
             return true;
+        }
+
+        @Override
+        public NarrationPriority narrationPriority() {
+            return null;
+        }
+
+        @Override
+        public void updateNarration(NarrationElementOutput p_169152_) {
+
         }
     }
 }

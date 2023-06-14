@@ -1,17 +1,19 @@
 plugins {
-	id 'fabric-loom' version '1.2-SNAPSHOT'
+	id 'idea'
+	id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 	id 'maven-publish'
 	id "com.modrinth.minotaur" version "2.+"
+	id 'org.spongepowered.mixin' version '0.7.+'
 }
 
-loom {
-	accessWidenerPath = file("src/main/resources/betterclouds.accesswidener")
-}
 
 sourceCompatibility = JavaVersion.VERSION_17
 targetCompatibility = JavaVersion.VERSION_17
 
-archivesBaseName = project.archives_base_name
+
+base {
+	archivesName = mod_id
+}
 version = project.mod_version
 if(project.version_type != "RELEASE") {
 	version += "-" + project.version_type
@@ -20,7 +22,7 @@ version += "+" + project.minecraft_version
 if(project.version_type != "RELEASE") {
 	version += "." + 'git rev-parse --short HEAD'.execute().text.trim()
 }
-group = project.maven_group
+group = project.mod_group_id
 
 repositories {
 	maven {
@@ -40,39 +42,44 @@ repositories {
 		url 'https://maven.isxander.dev/releases'
 	}
 }
+minecraft {
+	mappings channel: mapping_channel, version: mapping_version
+	copyIdeResources = true
+	accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
-	modImplementation "dev.isxander.yacl:yet-another-config-lib-fabric:${project.yacl_version}"
+	runs {
+		client {
+			workingDirectory project.file('run')
+			property 'forge.logging.markers', 'REGISTRIES'
+			property 'forge.logging.console.level', 'debug'
+			property 'forge.enabledGameTestNamespaces', mod_id
+			property 'mixin.env.remapRefMap', 'true'
+			property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
-	modCompileOnly "maven.modrinth:sodium-extra:${project.sodium_extra_version}"
-	modCompileOnly "maven.modrinth:iris:${project.iris_version}"
-}
-
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
+			mods {
+				"${mod_id}" {
+					source sourceSets.main
+				}
+			}
+		}
 	}
 }
 
-tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-	it.options.release = 17
+mixin {
+	add sourceSets.main, "betterclouds.refmap.json"
+
+	config "betterclouds.mixins.json"
 }
 
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
+dependencies {
+	minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+	implementation "dev.isxander.yacl:yet-another-config-lib-forge:${project.yacl_version}"
+
+	annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+//	modCompileOnly "maven.modrinth:sodium-extra:${project.sodium_extra_version}"
+//	modCompileOnly "maven.modrinth:iris:${project.iris_version}"
 }
 
 jar {
@@ -98,7 +105,7 @@ publishing {
 	}
 }
 
-modrinth  { // Make sure it runs after build!
+/*modrinth  { // Make sure it runs after build!
 	def secrets = new Properties()
 
 	file("./secrets.properties").withInputStream {
@@ -125,4 +132,4 @@ modrinth  { // Make sure it runs after build!
 		optional.project "iris"
 		optional.project "modmenu"
 	}
-}
+}*/

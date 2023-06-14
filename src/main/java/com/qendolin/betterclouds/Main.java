@@ -5,21 +5,15 @@ import com.qendolin.betterclouds.compat.GLCompat;
 import com.qendolin.betterclouds.compat.GsonConfigInstanceBuilderDuck;
 import com.qendolin.betterclouds.compat.Telemetry;
 import dev.isxander.yacl3.config.GsonConfigInstance;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.Version;
-import net.fabricmc.loader.impl.util.version.StringVersion;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackType;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.ModContainer;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.GL32;
@@ -28,19 +22,18 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-
-public class Main implements ClientModInitializer {
+@Mod(Main.MODID)
+public class Main {
     public static final String MODID = "betterclouds";
     public static final Logger LOGGER = LogManager.getLogger(MODID);
-    public static final boolean IS_DEV = FabricLoader.getInstance().isDevelopmentEnvironment();
+    public static final boolean IS_DEV = FMLLoader.isProduction(); //todo test
 
     public static GLCompat glCompat;
-    public static Version version;
 
     private static final GsonConfigInstance<Config> CONFIG;
 
     static {
-        if (FabricLoader.getInstance().getEnvironmentType().equals(EnvType.CLIENT)) {
+        if (FMLLoader.getDist().equals(Dist.CLIENT)) {
             GsonConfigInstance.Builder<Config> builder = GsonConfigInstance
                 .createBuilder(Config.class)
                 .setPath(Path.of("config/betterclouds-v1.json"));
@@ -73,7 +66,7 @@ public class Main implements ClientModInitializer {
         if (getConfig().lastTelemetryVersion < Telemetry.VERSION && Telemetry.INSTANCE != null) {
             Telemetry.INSTANCE.sendSystemInfo()
                 .whenComplete((success, throwable) -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
+                    Minecraft client = Minecraft.getInstance();
                     if (success && client != null) {
                         client.execute(() -> {
                             getConfig().lastTelemetryVersion = Telemetry.VERSION;
@@ -93,49 +86,40 @@ public class Main implements ClientModInitializer {
     }
 
     public static void debugChatMessage(String id, Object... args) {
-        debugChatMessage(Text.translatable(debugChatMessageKey(id), args));
+        debugChatMessage(Component.translatable(debugChatMessageKey(id), args));
     }
 
-    public static void debugChatMessage(Text message) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    public static void debugChatMessage(Component message) {
+        Minecraft client = Minecraft.getInstance();
         if (client == null) return;
-        client.inGameHud.getChatHud().addMessage(Text.literal("§e[§bBC§b§e]§r ").append(message));
+        client.gui.getChat().addMessage(Component.literal("§e[§bBC§b§e]§r ").append(message));
     }
 
     public static String debugChatMessageKey(String id) {
         return MODID + ".message." + id;
     }
 
-    public static Version getVersion() {
-        return version;
-    }
-
     static GsonConfigInstance<Config> getConfigInstance() {
         return CONFIG;
     }
 
-    @Override
     public void onInitializeClient() {
         if (CONFIG == null)
-            throw new IllegalStateException("Fabric environment is " + FabricLoader.getInstance().getEnvironmentType().name() + " but onInitializeClient was called");
+            throw new IllegalStateException("CONFIG is null!");
         CONFIG.load();
 
-        ModContainer mod = FabricLoader.getInstance().getModContainer(MODID).orElse(null);
-        if (mod != null) version = mod.getMetadata().getVersion();
-        else version = new StringVersion("unknown");
+//        ClientLifecycleEvents.CLIENT_STARTED.register(client -> glCompat.enableDebugOutputSynchronous());
 
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> glCompat.enableDebugOutputSynchronous());
+//        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+//            if (!glCompat.isIncompatible()) return;
+//            CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS)
+//                .execute(() -> client.execute(Main::sendGpuIncompatibleChatMessage));
+//        });
 
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            if (!glCompat.isIncompatible()) return;
-            CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS)
-                .execute(() -> client.execute(Main::sendGpuIncompatibleChatMessage));
-        });
+//        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES)
+//            .registerReloadListener(ShaderPresetLoader.INSTANCE);
 
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES)
-            .registerReloadListener(ShaderPresetLoader.INSTANCE);
-
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> Commands.register(dispatcher));
+//        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> Commands.register(dispatcher));
 
         if (!IS_DEV) return;
         LOGGER.info("Initialized in dev mode, performance might vary");
@@ -144,10 +128,10 @@ public class Main implements ClientModInitializer {
     public static void sendGpuIncompatibleChatMessage() {
         if (!getConfig().gpuIncompatibleMessageEnabled) return;
         debugChatMessage(
-            Text.translatable(debugChatMessageKey("gpuIncompatible"))
-                .append(Text.literal("\n - "))
-                .append(Text.translatable(debugChatMessageKey("gpuIncompatible.disable"))
-                    .styled(style -> style.withItalic(true).withUnderline(true).withColor(Formatting.GRAY)
+            Component.translatable(debugChatMessageKey("gpuIncompatible"))
+                .append(Component.literal("\n - "))
+                    .append(Component.translatable(debugChatMessageKey("gpuIncompatible.disable"))
+                    .withStyle(style -> style.withItalic(true).withUnderlined(true).withColor(ChatFormatting.GRAY)
                         .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                             "/betterclouds:config gpuIncompatibleMessage false")))));
     }

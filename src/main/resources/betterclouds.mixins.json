@@ -8,7 +8,6 @@
     "AbstractWidgetMixin",
     "BufferRendererAccessor",
     "CloudSettingMixin",
-    "ExtendedShaderAccessor",
     "GsonConfigInstanceBuilderMixin",
     "RenderSystemMixin",
     "ShaderProgramAccessor",

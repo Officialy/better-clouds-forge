@@ -1,17 +1,17 @@
 package com.qendolin.betterclouds.mixin;
 
-import net.minecraft.client.gl.ShaderProgram;
+import net.minecraft.client.renderer.ShaderInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ShaderProgram.class)
+@Mixin(ShaderInstance.class)
 public interface ShaderProgramAccessor {
-    @Accessor("activeProgramGlRef")
+    @Accessor("lastProgramId")
     static int getActiveProgramGlRef() {
         throw new AssertionError();
     }
 
-    @Accessor("activeProgramGlRef")
+    @Accessor("lastProgramId")
     static void setActiveProgramGlRef(int id) {
         throw new AssertionError();
     }

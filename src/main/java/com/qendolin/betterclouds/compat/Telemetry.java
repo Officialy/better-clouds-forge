@@ -63,7 +63,7 @@ public class Telemetry {
     protected CompletableFuture<Boolean> sendPayload(String payload, String... labels) {
         if (!enabled) return CompletableFuture.completedFuture(false);
         try {
-            RequestBody body = new RequestBody(new SystemDetails(), List.of(labels), payload, Main.getVersion().getFriendlyString(), VERSION);
+            RequestBody body = new RequestBody(new SystemDetails(), List.of(labels), payload, "1.1.1"/*Main.getVersion().getFriendlyString()*/, VERSION);
             String json = gson.toJson(body);
             final byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
             return postAsync(bytes);

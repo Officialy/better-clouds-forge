@@ -8,9 +8,9 @@ import com.qendolin.betterclouds.clouds.shaders.CoverageShader;
 import com.qendolin.betterclouds.clouds.shaders.DepthShader;
 import com.qendolin.betterclouds.clouds.shaders.ShadingShader;
 import com.qendolin.betterclouds.compat.Telemetry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -20,9 +20,9 @@ import static org.lwjgl.opengl.GL32.*;
 
 public class Resources implements Closeable {
     // Texture Unit 5
-    public static final Identifier NOISE_TEXTURE = new Identifier(Main.MODID, "textures/environment/cloud_noise_rgb.png");
+    public static final ResourceLocation NOISE_TEXTURE = new ResourceLocation(Main.MODID, "textures/environment/cloud_noise_rgb.png");
     // Texture Unit 4
-    public static final Identifier LIGHTING_TEXTURE = new Identifier(Main.MODID, "textures/environment/cloud_light_gradient.png");
+    public static final ResourceLocation LIGHTING_TEXTURE = new ResourceLocation(Main.MODID, "textures/environment/cloud_light_gradient.png");
 
     private static final int UNASSIGNED = 0;
 
@@ -147,8 +147,8 @@ public class Resources implements Closeable {
         cubeVao = UNASSIGNED;
     }
 
-    public void reloadTextures(MinecraftClient client) {
-        int noiseTexture = client.getTextureManager().getTexture(NOISE_TEXTURE).getGlId();
+    public void reloadTextures(Minecraft client) {
+        int noiseTexture = client.getTextureManager().getTexture(NOISE_TEXTURE).getId();
         RenderSystem.activeTexture(GL_TEXTURE0);
         RenderSystem.bindTexture(noiseTexture);
         glCompat.objectLabel(GL_TEXTURE, noiseTexture, "noise");
@@ -156,7 +156,7 @@ public class Resources implements Closeable {
         RenderSystem.texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_WRAP_T, GL_REPEAT);
         RenderSystem.texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_MIN_FILTER, GlConst.GL_LINEAR);
         RenderSystem.texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_MAG_FILTER, GlConst.GL_LINEAR);
-        int lightingTexture = client.getTextureManager().getTexture(LIGHTING_TEXTURE).getGlId();
+        int lightingTexture = client.getTextureManager().getTexture(LIGHTING_TEXTURE).getId();
         RenderSystem.bindTexture(lightingTexture);
         glCompat.objectLabel(GL_TEXTURE, lightingTexture, "lighting");
         RenderSystem.texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

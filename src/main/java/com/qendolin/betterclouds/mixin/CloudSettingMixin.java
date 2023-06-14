@@ -1,9 +1,9 @@
 package com.qendolin.betterclouds.mixin;
 
 import com.qendolin.betterclouds.Main;
-import net.minecraft.client.option.CloudRenderMode;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.option.SimpleOption;
+import net.minecraft.client.CloudStatus;
+import net.minecraft.client.OptionInstance;
+import net.minecraft.client.Options;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,23 +12,23 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 // Run before Iris (priority 1010)
-@Mixin(value = GameOptions.class, priority = 1000)
+@Mixin(value = Options.class, priority = 1000)
 public abstract class CloudSettingMixin {
 
     @Shadow
     @Final
-    private SimpleOption<Integer> viewDistance;
+    private OptionInstance<Integer> renderDistance;
 
     @Shadow
     @Final
-    private SimpleOption<CloudRenderMode> cloudRenderMode;
+    private OptionInstance<CloudStatus> cloudStatus;
 
-    @Inject(at = @At("HEAD"), method = "getCloudRenderModeValue", cancellable = true)
-    private void overrideCloudSetting(CallbackInfoReturnable<CloudRenderMode> cir) {
+    @Inject(at = @At("HEAD"), method = "getCloudsType", cancellable = true)
+    private void overrideCloudSetting(CallbackInfoReturnable<CloudStatus> cir) {
         if (!Main.getConfig().cloudOverride) return;
-        if (viewDistance.getValue() < 4) {
+        if (renderDistance.get() < 4) {
             return;
         }
-        cir.setReturnValue(cloudRenderMode.getValue());
+        cir.setReturnValue(cloudStatus.get());
     }
 }

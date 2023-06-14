@@ -2,9 +2,9 @@ package com.qendolin.betterclouds.clouds;
 
 import com.qendolin.betterclouds.Config;
 import com.qendolin.betterclouds.Main;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.Util;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
@@ -113,8 +113,8 @@ public class ChunkedGenerator implements AutoCloseable {
 
     private static int calcBufferSize(Config options) {
         int distance = options.blockDistance();
-        return MathHelper.floor(distance / options.spacing)
-            + MathHelper.ceil(distance / options.spacing);
+        return Mth.floor(distance / options.spacing)
+            + Mth.ceil(distance / options.spacing);
     }
 
     public synchronized void clear() {
@@ -136,7 +136,7 @@ public class ChunkedGenerator implements AutoCloseable {
 
     public synchronized void update(Vector3d camera, float time, Config options, float cloudiness) {
         // This isn't quite right but whatever
-        float timeDelta = MathHelper.clamp(time - prevTime, 0, 200);
+        float timeDelta = Mth.clamp(time - prevTime, 0, 200);
         prevTime = time;
 
         originX -= timeDelta * options.travelSpeed;
@@ -239,7 +239,7 @@ public class ChunkedGenerator implements AutoCloseable {
         swappedTask = completedTask;
 
         if (Main.isProfilingEnabled()) {
-            long elapsed = swappedTask.elapsedMs(Util.getMeasuringTimeMs());
+            long elapsed = swappedTask.elapsedMs(Util.getMillis());
             Main.debugChatMessage("profiling.genTimes", elapsed, 1000f / elapsed);
         }
     }
@@ -338,14 +338,14 @@ public class ChunkedGenerator implements AutoCloseable {
             synchronized (this) {
                 if (ran.getAndSet(true) || cancelled.get()) return;
             }
-            startTime = Util.getMeasuringTimeMs();
+            startTime = Util.getMillis();
 
             int distance = options.blockDistance();
             double spacing = options.spacing;
 
-            int gridMin = -MathHelper.floor(distance / spacing);
-            int gridMax = MathHelper.ceil(distance / spacing);
-            int gridVisibilityRadiusSquared = MathHelper.ceil((distance + options.sizeXZ) / spacing);
+            int gridMin = -Mth.floor(distance / spacing);
+            int gridMax = Mth.ceil(distance / spacing);
+            int gridVisibilityRadiusSquared = Mth.ceil((distance + options.sizeXZ) / spacing);
             gridVisibilityRadiusSquared = gridVisibilityRadiusSquared * gridVisibilityRadiusSquared;
 
             int chunkMin = roundToMultiple(gridMin, options.chunkSize);
@@ -353,8 +353,8 @@ public class ChunkedGenerator implements AutoCloseable {
             int chunkLength = chunkMax - chunkMin;
             int chunkCount = chunkLength / options.chunkSize;
 
-            int gridOriginX = MathHelper.floor((chunkX * options.chunkSize) / spacing);
-            int gridOriginZ = MathHelper.floor((chunkZ * options.chunkSize) / spacing);
+            int gridOriginX = Mth.floor((chunkX * options.chunkSize) / spacing);
+            int gridOriginZ = Mth.floor((chunkZ * options.chunkSize) / spacing);
 
             int[][][] chunkGridPoints = new int[chunkCount * chunkCount][][];
             // The outer loop generates chunks
@@ -409,8 +409,8 @@ public class ChunkedGenerator implements AutoCloseable {
                     if (point == null) continue;
                     int gridX = point[0], gridZ = point[1];
 
-                    int sampleX = MathHelper.floor((gridX + gridOriginX) * spacing);
-                    int sampleZ = MathHelper.floor((gridZ + gridOriginZ) * spacing);
+                    int sampleX = Mth.floor((gridX + gridOriginX) * spacing);
+                    int sampleZ = Mth.floor((gridZ + gridOriginZ) * spacing);
                     float value = sampler.sample(sampleX, sampleZ, cloudiness, options.fuzziness, options.samplingScale);
                     if (value <= 0) continue;
 
@@ -435,8 +435,8 @@ public class ChunkedGenerator implements AutoCloseable {
                 }
 
                 if (chunkCloudIndex != cloudCount && bounds != null) {
-                    Box boundingBox = new Box(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
-                        .offset(this.chunkX * options.chunkSize, 0, this.chunkZ * options.chunkSize);
+                    AABB boundingBox = new AABB(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
+                        .move(this.chunkX * options.chunkSize, 0, this.chunkZ * options.chunkSize);
                     chunks.add(new ChunkIndex(chunkCloudIndex, cloudCount - chunkCloudIndex, boundingBox));
                 }
 
@@ -490,23 +490,23 @@ public class ChunkedGenerator implements AutoCloseable {
     public static final class ChunkIndex {
         private final int start;
         private final int count;
-        private final Box bounds;
+        private final AABB bounds;
 
-        private Box cachedBounds;
+        private AABB cachedBounds;
         private float lastCloudsHeight;
         private float lastSizeXZ;
         private float lastSizeY;
 
-        public ChunkIndex(int start, int count, Box bounds) {
+        public ChunkIndex(int start, int count, AABB bounds) {
             this.start = start;
             this.count = count;
             this.bounds = bounds;
         }
 
-        public Box bounds(float cloudsHeight, float sizeXZ, float sizeY) {
+        public AABB bounds(float cloudsHeight, float sizeXZ, float sizeY) {
             if (cloudsHeight == lastCloudsHeight && sizeXZ == lastSizeXZ && sizeY == lastSizeY) return cachedBounds;
 
-            cachedBounds = bounds.offset(0, cloudsHeight, 0).expand(sizeXZ, sizeY, sizeXZ);
+            cachedBounds = bounds.move(0, cloudsHeight, 0).expandTowards(sizeXZ, sizeY, sizeXZ);
             lastCloudsHeight = cloudsHeight;
             lastSizeXZ = sizeXZ;
             lastSizeY = sizeY;

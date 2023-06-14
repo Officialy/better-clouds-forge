@@ -1,13 +1,13 @@
 package com.qendolin.betterclouds.mixin;
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.client.gui.widget.TabButtonWidget;
-import net.minecraft.client.gui.widget.TabNavigationWidget;
+import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(TabNavigationWidget.class)
+@Mixin(TabNavigationBar.class)
 public interface TabNavigationWidgetAccessor {
     @Accessor
-    ImmutableList<TabButtonWidget> getTabButtons();
+    ImmutableList<TabButton> getTabButtons();
 }

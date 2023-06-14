@@ -1,44 +1,44 @@
 package com.qendolin.betterclouds.mixin;
 
 import com.qendolin.betterclouds.gui.ConfigScreen;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.gui.widget.TabButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(TabButtonWidget.class)
-public abstract class TabButtonWidgetMixin extends ClickableWidget {
+@Mixin(TabButton.class)
+public abstract class TabButtonWidgetMixin extends AbstractWidget {
 
-    public TabButtonWidgetMixin(int x, int y, int width, int height, Text message) {
+    public TabButtonWidgetMixin(int x, int y, int width, int height, Component message) {
         super(x, y, width, height, message);
     }
 
-    @Shadow public abstract void drawMessage(DrawContext context, TextRenderer textRenderer, int color);
+    @Shadow public abstract void renderString(GuiGraphics context, Font textRenderer, int color);
 
-    @Shadow public abstract boolean isCurrentTab();
+    @Shadow public abstract boolean isSelected();
 
-    @Shadow protected abstract void drawCurrentTabLine(DrawContext context, TextRenderer textRenderer, int color);
+    @Shadow protected abstract void renderFocusUnderline(GuiGraphics context, Font textRenderer, int color);
 
-    @Inject(method = "renderButton", at = @At("HEAD"), cancellable = true)
-    private void onRenderButton(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    @Inject(method = "renderWidget", at = @At("HEAD"), cancellable = true)
+    private void onRenderButton(GuiGraphics context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
         // I'm gonna go to hell for this
-        if (client == null || client.world == null || !(client.currentScreen instanceof ConfigScreen)) {
+        if (client == null || client.level == null || !(client.screen instanceof ConfigScreen)) {
             return;
         }
         ci.cancel();
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         int i = active ? -1 : -6250336;
-        this.drawMessage(context, textRenderer, i);
-        if (this.isCurrentTab()) {
-            this.drawCurrentTabLine(context, textRenderer, i);
+        this.renderString(context, textRenderer, i);
+        if (this.isSelected()) {
+            this.renderFocusUnderline(context, textRenderer, i);
         }
     }
 }

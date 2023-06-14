@@ -6,13 +6,13 @@ import dev.isxander.yacl3.gui.DescriptionWithName;
 import dev.isxander.yacl3.gui.OptionListWidget;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.LabelController;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.ScreenRect;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.navigation.GuiNavigation;
-import net.minecraft.client.gui.navigation.GuiNavigationPath;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 public class CustomOptionListWidget extends OptionListWidget {
 
-    public CustomOptionListWidget(YACLScreen screen, ConfigCategory category, MinecraftClient client, int x, int y, int width, int height, Consumer<DescriptionWithName> hoverEvent) {
+    public CustomOptionListWidget(YACLScreen screen, ConfigCategory category, Minecraft client, int x, int y, int width, int height, Consumer<DescriptionWithName> hoverEvent) {
         super(screen, category, client, x, y, width, height, hoverEvent);
     }
 
@@ -34,7 +34,7 @@ public class CustomOptionListWidget extends OptionListWidget {
             if (child instanceof OptionEntry optionEntry && optionEntry.option.controller() instanceof LabelController) {
                 addEntryBelow(optionEntry, new ProxyEntry<OptionEntry>(optionEntry)
                     .onBeforeRender((delegate, context, index, y, x, entryWidth, entryHeight, mouseX, mouseY, hovered, tickDelta) -> {
-                        if (client.world == null) return;
+                        if (minecraft.level == null) return;
                         Dimension<Integer> dim = delegate.widget.getDimension();
                         context.fill(dim.x(), dim.y(), dim.xLimit(), dim.yLimit(), 0x6b000000);
                     }));
@@ -42,7 +42,7 @@ public class CustomOptionListWidget extends OptionListWidget {
             } else if (child instanceof GroupSeparatorEntry groupSeparatorEntry) {
                 addEntryBelow(groupSeparatorEntry, new ProxyEntry<GroupSeparatorEntry>(groupSeparatorEntry)
                     .onBeforeRender((delegate, context, index, y, x, entryWidth, entryHeight, mouseX, mouseY, hovered, tickDelta) -> {
-                        if (client.world == null) return;
+                        if (minecraft.level == null) return;
                         context.fill(x, y, x + entryWidth, y + 19, 0x6b000000);
                     }));
                 removeEntry(groupSeparatorEntry);
@@ -55,8 +55,8 @@ public class CustomOptionListWidget extends OptionListWidget {
     }
 
     @Override
-    protected void renderBackground(DrawContext context) {
-        if (client == null || client.world == null) {
+    protected void renderBackground(GuiGraphics context) {
+        if (minecraft == null || minecraft.level == null) {
             super.renderBackground(context);
             setRenderBackground(true);
         } else {
@@ -99,7 +99,7 @@ public class CustomOptionListWidget extends OptionListWidget {
         }
 
         @Override
-        public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void render(GuiGraphics context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             if (beforeRender != null)
                 beforeRender.onBeforeRender(delegate, context, index, y, x, entryWidth, entryHeight, mouseX, mouseY, hovered, tickDelta);
             delegate.render(context, index, y, x, entryWidth, entryHeight, mouseX, mouseY, hovered, tickDelta);
@@ -108,18 +108,18 @@ public class CustomOptionListWidget extends OptionListWidget {
         }
 
         @Override
-        public List<? extends Selectable> selectableChildren() {
-            return delegate.selectableChildren();
+        public List<? extends NarratableEntry> narratables() {
+            return delegate.narratables();
         }
 
         @Override
-        public List<? extends Element> children() {
+        public List<? extends GuiEventListener> children() {
             return delegate.children();
         }
 
         @Override
-        public Optional<Element> hoveredElement(double mouseX, double mouseY) {
-            return delegate.hoveredElement(mouseX, mouseY);
+        public Optional<GuiEventListener> getChildAt(double p_94730_, double p_94731_) {
+            return delegate.getChildAt(p_94730_, p_94731_);
         }
 
         @Override
@@ -154,18 +154,17 @@ public class CustomOptionListWidget extends OptionListWidget {
 
         @Nullable
         @Override
-        public GuiNavigationPath getFocusedPath() {
-            return delegate.getFocusedPath();
+        public ComponentPath getCurrentFocusPath() {
+            return delegate.getCurrentFocusPath();
         }
 
         @Override
-        public ScreenRect getNavigationFocus() {
-            return delegate.getNavigationFocus();
+        public ScreenRectangle getRectangle() {
+            return delegate.getRectangle();
         }
-
         @Override
-        public void focusOn(@Nullable Element element) {
-            delegate.focusOn(element);
+        public void magicalSpecialHackyFocus(@Nullable GuiEventListener p_94726_) {
+            delegate.magicalSpecialHackyFocus(p_94726_);
         }
 
         @Override
@@ -175,7 +174,7 @@ public class CustomOptionListWidget extends OptionListWidget {
 
         @Override
         public boolean isHovered() {
-            return Objects.equals(getHoveredEntry(), this);
+            return Objects.equals(getHovered(), this);
         }
 
         @Override
@@ -200,20 +199,20 @@ public class CustomOptionListWidget extends OptionListWidget {
 
         @Override
         @Nullable
-        public Element getFocused() {
+        public GuiEventListener getFocused() {
             return delegate.getFocused();
         }
 
-        @Override
         @Nullable
-        public GuiNavigationPath getNavigationPath(GuiNavigation navigation, int index) {
-            return delegate.getNavigationPath(navigation, index);
+        @Override
+        public ComponentPath focusPathAtIndex(FocusNavigationEvent p_265435_, int p_265432_) {
+            return delegate.focusPathAtIndex(p_265435_, p_265432_);
         }
 
-        @Override
         @Nullable
-        public GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
-            return delegate.getNavigationPath(navigation);
+        @Override
+        public ComponentPath nextFocusPath(FocusNavigationEvent p_265672_) {
+            return delegate.nextFocusPath(p_265672_);
         }
 
         @Override
@@ -222,7 +221,7 @@ public class CustomOptionListWidget extends OptionListWidget {
         }
 
         @Override
-        public void setFocused(@Nullable Element focused) {
+        public void setFocused(@Nullable GuiEventListener focused) {
             delegate.setFocused(focused);
         }
 
@@ -232,8 +231,8 @@ public class CustomOptionListWidget extends OptionListWidget {
         }
 
         @Override
-        public void drawBorder(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-            delegate.drawBorder(context, index, y, x, entryWidth, entryHeight, mouseX, mouseY, hovered, tickDelta);
+        public void renderBack(GuiGraphics p_282673_, int p_275556_, int p_275667_, int p_275713_, int p_275408_, int p_275330_, int p_275603_, int p_275450_, boolean p_275434_, float p_275384_) {
+            delegate.renderBack(p_282673_, p_275556_, p_275667_, p_275713_, p_275408_, p_275330_, p_275603_, p_275450_, p_275434_, p_275384_);
         }
 
         @Override
@@ -247,39 +246,39 @@ public class CustomOptionListWidget extends OptionListWidget {
         }
 
         @Override
-        public int getNavigationOrder() {
-            return delegate.getNavigationOrder();
+        public int getTabOrderGroup() {
+            return delegate.getTabOrderGroup();
         }
     }
 
     @FunctionalInterface
     public interface BeforeRenderCallback<T extends Entry> {
-        void onBeforeRender(T delegate, DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta);
+        void onBeforeRender(T delegate, GuiGraphics context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta);
     }
 
     @FunctionalInterface
     public interface AfterRenderCallback<T extends Entry> {
-        void onAfterRender(T delegate, DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta);
+        void onAfterRender(T delegate, GuiGraphics context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta);
     }
 
     private class PaddingEntry extends Entry {
         @Override
-        public List<? extends Selectable> selectableChildren() {
+        public List<? extends GuiEventListener> children() {
             return List.of();
         }
 
         @Override
-        public List<? extends Element> children() {
-            return List.of();
-        }
-
-        @Override
-        public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void render(GuiGraphics context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
         }
 
         @Override
         public int getItemHeight() {
             return 5;
+        }
+
+        @Override
+        public List<? extends NarratableEntry> narratables() {
+            return List.of();
         }
     }
 }

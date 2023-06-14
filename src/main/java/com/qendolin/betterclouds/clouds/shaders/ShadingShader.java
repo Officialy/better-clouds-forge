@@ -1,15 +1,15 @@
 package com.qendolin.betterclouds.clouds.shaders;
 
 import com.qendolin.betterclouds.Main;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.IOException;
 import java.util.Map;
 
 public class ShadingShader extends Shader {
-    public static final Identifier VERTEX_SHADER_ID = new Identifier(Main.MODID, "shaders/core/betterclouds_shading.vsh");
-    public static final Identifier FRAGMENT_SHADER_ID = new Identifier(Main.MODID, "shaders/core/betterclouds_shading.fsh");
+    public static final ResourceLocation VERTEX_SHADER_ID = new ResourceLocation(Main.MODID, "shaders/core/betterclouds_shading.vsh");
+    public static final ResourceLocation FRAGMENT_SHADER_ID = new ResourceLocation(Main.MODID, "shaders/core/betterclouds_shading.fsh");
 
     public static final String DEF_BLIT_DEPTH_KEY = "_BLIT_DEPTH_";
 

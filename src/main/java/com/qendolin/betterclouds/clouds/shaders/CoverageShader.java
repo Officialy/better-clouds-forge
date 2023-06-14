@@ -2,8 +2,8 @@ package com.qendolin.betterclouds.clouds.shaders;
 
 import com.google.common.collect.ImmutableMap;
 import com.qendolin.betterclouds.Main;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.IOException;
 import java.util.Map;
@@ -13,8 +13,8 @@ public class CoverageShader extends Shader {
     public static final String DEF_SIZE_Y_KEY = "_SIZE_Y_";
     public static final String DEF_FADE_EDGE_KEY = "_VISIBILITY_EDGE_";
 
-    public static final Identifier VERTEX_SHADER_ID = new Identifier(Main.MODID, "shaders/core/betterclouds_coverage.vsh");
-    public static final Identifier FRAGMENT_SHADER_ID = new Identifier(Main.MODID, "shaders/core/betterclouds_coverage.fsh");
+    public static final ResourceLocation VERTEX_SHADER_ID = new ResourceLocation(Main.MODID, "shaders/core/betterclouds_coverage.vsh");
+    public static final ResourceLocation FRAGMENT_SHADER_ID = new ResourceLocation(Main.MODID, "shaders/core/betterclouds_coverage.fsh");
 
     public final Uniform uNoiseTexture;
     public final Uniform uMVPMatrix;

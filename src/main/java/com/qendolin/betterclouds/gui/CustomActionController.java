@@ -5,12 +5,12 @@ import dev.isxander.yacl3.api.utils.Dimension;
 import dev.isxander.yacl3.gui.AbstractWidget;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.ActionController;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 public class CustomActionController extends ActionController {
     public CustomActionController(ButtonOption option) {
-        super(option, Text.of(null));
+        super(option, Component.empty());
     }
 
     @Override
@@ -25,16 +25,16 @@ public class CustomActionController extends ActionController {
         }
 
         @Override
-        public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
             hovered = isMouseOver(mouseX, mouseY);
 
-            Text name = control.option().changed() ? modifiedOptionName : control.option().name();
+            Component name = control.option().changed() ? modifiedOptionName : control.option().name();
 
             drawButtonRect(context, getDimension().x(), getDimension().y(), getDimension().xLimit(), getDimension().yLimit(), isHovered(), isAvailable());
-            context.getMatrices().push();
-            context.getMatrices().translate(getDimension().x() + getDimension().width() / 2f - textRenderer.getWidth(name) / 2f, getTextY(), 0);
-            context.drawTextWithShadow(textRenderer, name, 0, 0, getValueColor());
-            context.getMatrices().pop();
+            context.pose().pushPose();
+            context.pose().translate(getDimension().x() + getDimension().width() / 2f - textRenderer.width(name) / 2f, getTextY(), 0);
+            context.drawString(textRenderer, name, 0, 0, getValueColor(),true);
+            context.pose().popPose();
 
             if (isHovered()) {
                 drawHoveredControl(context, mouseX, mouseY, delta);
@@ -42,7 +42,7 @@ public class CustomActionController extends ActionController {
         }
 
         @Override
-        protected void drawValueText(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawValueText(GuiGraphics context, int mouseX, int mouseY, float delta) {
 
         }
     }
