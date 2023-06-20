@@ -64,10 +64,10 @@ public class ConfigGUI {
     public final Option<Boolean> writeDepth;
     public final Option<Float> upscaleResolutionFactor;
     public final Option<Boolean> usePersistentBuffers;
-    public final Option<Integer> selectedPreset;
-    public final Option<String> presetTitle;
-    public final ButtonOption copyPresetButton;
-    public final ButtonOption removePresetButton;
+//    public final Option<Integer> selectedPreset;
+//    public final Option<String> presetTitle;
+//    public final ButtonOption copyPresetButton;
+//    public final ButtonOption removePresetButton;
 
     protected final List<Tuple<ConfigCategory.Builder, List<Tuple<OptionGroup.Builder, List<Option<?>>>>>> categories = new ArrayList<>();
 
@@ -75,7 +75,7 @@ public class ConfigGUI {
     protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> generationCategory = new ArrayList<>();
     protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> appearanceCategory = new ArrayList<>();
     protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> performanceCategory = new ArrayList<>();
-    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> shadersCategory = new ArrayList<>();
+//    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> shadersCategory = new ArrayList<>();
 
     protected final List<Option<?>> commonPresetsGroup = new ArrayList<>();
     protected final List<Option<?>> commonGenerationGroup = new ArrayList<>();
@@ -93,15 +93,15 @@ public class ConfigGUI {
     protected final List<Option<?>> shadersColorGroup = new ArrayList<>();
     protected final List<Option<?>> shadersTechnicalGroup = new ArrayList<>();
 
-    protected final List<Option<?>> shaderConfigPresetOptions = new ArrayList<>();
+//    protected final List<Option<?>> shaderConfigPresetOptions = new ArrayList<>();
 
     protected final List<Config.ShaderConfigPreset> presetsToBeDeleted = new ArrayList<>();
 
     public ConfigGUI(Config defaults, Config config) {
         this.defaults = defaults;
         this.config = config;
-        config.addFirstPreset();
-        config.sortPresets();
+//  todo      config.addFirstPreset();
+//        config.sortPresets();
 
         this.chunkSize = createOption(int.class, "chunkSize")
             .binding(defaults.chunkSize, () -> config.chunkSize, val -> config.chunkSize = val)
@@ -199,7 +199,7 @@ public class ConfigGUI {
 
         // FIXME: defaults.preset() gives default values defined in the code, not from the `default` preset
 
-        this.selectedPreset = createOption(int.class, "shaderPreset")
+    /*    this.selectedPreset = createOption(int.class, "shaderPreset")
             .binding(defaults.selectedPreset, () -> config.selectedPreset, val -> config.selectedPreset = val)
             .customController(opt -> new SelectController<>(opt, config.presets, (i, preset) -> {
                 if (preset.title.isBlank()) {
@@ -226,11 +226,11 @@ public class ConfigGUI {
                 }
                 updateRemovePresetButton();
             })
-            .build();
-        this.presetTitle = createOption(String.class, "presetTitle", false)
+            .build();*/
+        /*this.presetTitle = createOption(String.class, "presetTitle", false)
             .binding("", () -> config.preset().title, val -> config.preset().title = val)
             .customController(StringController::new)
-            .build();
+            .build();*/
         this.saturation = createOption(float.class, "saturation")
             .binding(defaults.preset().saturation, () -> config.preset().saturation, val -> config.preset().saturation = val)
             .customController(opt -> new FloatSliderController(opt, 0, 2, 0.05f, ConfigGUI::formatAsPercent))
@@ -291,7 +291,7 @@ public class ConfigGUI {
             .binding(defaults.preset().opacity, () -> config.preset().opacity, val -> config.preset().opacity = val)
             .customController(opt -> new FloatSliderController(opt, 0, 1, 0.01f, ConfigGUI::formatAsPercent))
             .build();
-        shaderConfigPresetOptions.addAll(List.of(presetTitle,
+        /*shaderConfigPresetOptions.addAll(List.of(presetTitle,
             saturation,
             tint,
             gamma,
@@ -305,13 +305,13 @@ public class ConfigGUI {
             sunPathAngle,
             opacityFactor,
             opacityExponent,
-            opacity));
-        shaderConfigPresetOptions.forEach(opt -> opt.setAvailable(config.preset().editable));
+            opacity));*/
+//        shaderConfigPresetOptions.forEach(opt -> opt.setAvailable(config.preset().editable));
 
         final Component removeButtonRemoveText = Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.remove");
         final Component removeButtonRestoreText = Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.restore");
 
-        this.removePresetButton = CustomButtonOption.createBuilder()
+     /*   this.removePresetButton = CustomButtonOption.createBuilder()
             .name(() -> presetsToBeDeleted.contains(config.preset()) ? removeButtonRestoreText : removeButtonRemoveText)
             .available(config.presets.size() > 1)
             .action((screen, option) -> {
@@ -326,8 +326,8 @@ public class ConfigGUI {
                 }
             })
             .build();
-        updateRemovePresetButton();
-        this.copyPresetButton = CustomButtonOption.createBuilder()
+        updateRemovePresetButton();*/
+        /*this.copyPresetButton = CustomButtonOption.createBuilder()
             .name(() -> Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.copy"))
             .action((screen, buttonOption) -> {
                 Config.ShaderConfigPreset preset = new Config.ShaderConfigPreset(config.preset());
@@ -340,13 +340,13 @@ public class ConfigGUI {
                 }
                 updateRemovePresetButton();
             })
-            .build();
+            .build();*/
 
         categories.add(new Tuple<>(ConfigCategory.createBuilder()
             .name(categoryLabel("common")), commonCategory));
-        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
-            .name(groupLabel("common.presets")), commonPresetsGroup));
-        commonPresetsGroup.addAll(List.of(selectedPreset, presetTitle, copyPresetButton, removePresetButton));
+//        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+//            .name(groupLabel("common.presets")), commonPresetsGroup));
+//        commonPresetsGroup.addAll(List.of(selectedPreset, presetTitle, copyPresetButton, removePresetButton));
         commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
             .name(groupLabel("common.generation")), commonGenerationGroup));
         commonGenerationGroup.addAll(List.of(sizeXZ, sizeY, spacing, samplingScale, distance));
@@ -388,7 +388,7 @@ public class ConfigGUI {
         performanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
             .name(groupLabel("performance.technical")), performanceTechnicalGroup));
         performanceTechnicalGroup.addAll(List.of(usePersistentBuffers));
-
+/*
 categories.add(new Tuple<>(ConfigCategory.createBuilder()
             .name(categoryLabel("shaders")), shadersCategory));
         shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
@@ -410,12 +410,12 @@ categories.add(new Tuple<>(ConfigCategory.createBuilder()
             sunsetEndTime,
             upscaleResolutionFactor,
             useIrisFBO,
-            writeDepth));
+            writeDepth));*/
     }
 
     private void updateRemovePresetButton() {
-        if (removePresetButton == null) return;
-        removePresetButton.setAvailable(config.preset().editable && config.presets.size() > 1);
+//        if (removePresetButton == null) return;
+//        removePresetButton.setAvailable(config.preset().editable && config.presets.size() > 1);
     }
 
     public static ConfigScreen create(Screen parent) {
