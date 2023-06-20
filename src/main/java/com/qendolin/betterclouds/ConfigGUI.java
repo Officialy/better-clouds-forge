@@ -353,10 +353,10 @@ public class ConfigGUI {
         commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
             .name(groupLabel("common.appearance")), commonAppearanceGroup));
         commonAppearanceGroup.addAll(List.of(enabled, opacity, opacityFactor));
-        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+   /*todo forge oculus support     commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
             .name(groupLabel("common.shaders")), commonShadersGroup));
         commonShadersGroup.addAll(List.of(irisDisclaimer, irisSupport, gamma, dayBrightness, nightBrightness, sunPathAngle));
-
+*/
         categories.add(new Tuple<>(ConfigCategory.createBuilder()
             .name(categoryLabel("generation")), generationCategory));
         generationCategory.add(new Tuple<>(OptionGroup.createBuilder()
@@ -389,7 +389,7 @@ public class ConfigGUI {
             .name(groupLabel("performance.technical")), performanceTechnicalGroup));
         performanceTechnicalGroup.addAll(List.of(usePersistentBuffers));
 
-        categories.add(new Tuple<>(ConfigCategory.createBuilder()
+categories.add(new Tuple<>(ConfigCategory.createBuilder()
             .name(categoryLabel("shaders")), shadersCategory));
         shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
             .name(groupLabel("shaders.general")), shadersGeneralGroup));

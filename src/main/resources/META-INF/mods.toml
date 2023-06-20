@@ -65,6 +65,6 @@ description='Beautiful clouds in touch with the vanilla style.'
 [[dependencies.betterclouds]]
 modId = "yet_another_config_lib_v3"
 mandatory = true
-versionRange = "[3.0.3,)"
+versionRange = "[3.0.2,)"
 ordering = "NONE"
 side = "CLIENT"

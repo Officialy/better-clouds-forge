@@ -10,7 +10,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,19 +35,25 @@ public class Main {
 
     private static final GsonConfigInstance<Config> CONFIG;
 
+    public Main() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(this::onClientSetup);
+        MinecraftForge.EVENT_BUS.register(this);
+    }
+
     static {
         if (FMLLoader.getDist().equals(Dist.CLIENT)) {
             GsonConfigInstance.Builder<Config> builder = GsonConfigInstance
-                .createBuilder(Config.class)
-                .setPath(Path.of("config/betterclouds-v1.json"));
+                    .createBuilder(Config.class)
+                    .setPath(Path.of("config/betterclouds-v1.json"));
 
             if (builder instanceof GsonConfigInstanceBuilderDuck) {
                 //noinspection unchecked
                 GsonConfigInstanceBuilderDuck<Config> duck = (GsonConfigInstanceBuilderDuck<Config>) builder;
                 builder = duck.betterclouds$appendGsonBuilder(b -> b
-                    .setLenient().setPrettyPrinting()
-                    .registerTypeAdapter(Config.class, Config.INSTANCE_CREATOR)
-                    .registerTypeAdapter(Config.ShaderConfigPreset.class, Config.ShaderConfigPreset.INSTANCE_CREATOR));
+                        .setLenient().setPrettyPrinting()
+                        .registerTypeAdapter(Config.class, Config.INSTANCE_CREATOR)
+                        .registerTypeAdapter(Config.ShaderConfigPreset.class, Config.ShaderConfigPreset.INSTANCE_CREATOR));
             }
             CONFIG = builder.build();
         } else {
@@ -61,15 +74,15 @@ public class Main {
         }
         if (getConfig().lastTelemetryVersion < Telemetry.VERSION && Telemetry.INSTANCE != null) {
             Telemetry.INSTANCE.sendSystemInfo()
-                .whenComplete((success, throwable) -> {
-                    Minecraft client = Minecraft.getInstance();
-                    if (success && client != null) {
-                        client.execute(() -> {
-                            getConfig().lastTelemetryVersion = Telemetry.VERSION;
-                            CONFIG.save();
-                        });
-                    }
-                });
+                    .whenComplete((success, throwable) -> {
+                        Minecraft client = Minecraft.getInstance();
+                        if (success && client != null) {
+                            client.execute(() -> {
+                                getConfig().lastTelemetryVersion = Telemetry.VERSION;
+                                CONFIG.save();
+                            });
+                        }
+                    });
         }
     }
 
@@ -99,7 +112,7 @@ public class Main {
         return CONFIG;
     }
 
-    public void onInitializeClient() {
+    public void onClientSetup(FMLClientSetupEvent event) {
         if (CONFIG == null)
             throw new IllegalStateException("CONFIG is null!");
         CONFIG.load();
@@ -115,21 +128,25 @@ public class Main {
 //        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES)
 //            .registerReloadListener(ShaderPresetLoader.INSTANCE);
 
-//        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> Commands.register(dispatcher));
 
         if (!IS_DEV) return;
         LOGGER.info("Initialized in dev mode, performance might vary");
     }
 
+    @SubscribeEvent
+    public void onRegisterCommandEvent(RegisterClientCommandsEvent event) {
+        Commands.register(event.getDispatcher());
+    }
+
     public static void sendGpuIncompatibleChatMessage() {
         if (!getConfig().gpuIncompatibleMessageEnabled) return;
         debugChatMessage(
-            Component.translatable(debugChatMessageKey("gpuIncompatible"))
-                .append(Component.literal("\n - "))
-                    .append(Component.translatable(debugChatMessageKey("gpuIncompatible.disable"))
-                    .withStyle(style -> style.withItalic(true).withUnderlined(true).withColor(ChatFormatting.GRAY)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
-                            "/betterclouds:config gpuIncompatibleMessage false")))));
+                Component.translatable(debugChatMessageKey("gpuIncompatible"))
+                        .append(Component.literal("\n - "))
+                        .append(Component.translatable(debugChatMessageKey("gpuIncompatible.disable"))
+                                .withStyle(style -> style.withItalic(true).withUnderlined(true).withColor(ChatFormatting.GRAY)
+                                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                                "/betterclouds:config gpuIncompatibleMessage false")))));
     }
 
 }
