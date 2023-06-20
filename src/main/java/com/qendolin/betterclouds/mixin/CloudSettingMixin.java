@@ -23,7 +23,7 @@ public abstract class CloudSettingMixin {
     @Final
     private OptionInstance<CloudStatus> cloudStatus;
 
-    @Inject(at = @At("HEAD"), method = "getCloudsType", cancellable = true)
+    @Inject(method = "getCloudsType", at = @At(value = "HEAD", target = "Lnet/minecraft/client/Options;getCloudsType()Lnet/minecraft/client/CloudStatus;"), cancellable = true)
     private void overrideCloudSetting(CallbackInfoReturnable<CloudStatus> cir) {
         if (!Main.getConfig().cloudOverride) return;
         if (renderDistance.get() < 4) {
