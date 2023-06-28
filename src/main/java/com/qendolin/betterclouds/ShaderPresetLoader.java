@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 public class ShaderPresetLoader extends SimplePreparableReloadListener<Map<String, Config.ShaderConfigPreset>> {
     private static final Gson GSON = new GsonBuilder()
@@ -43,29 +42,27 @@ public class ShaderPresetLoader extends SimplePreparableReloadListener<Map<Strin
 
     @Override
     protected Map<String, Config.ShaderConfigPreset> prepare(ResourceManager manager, ProfilerFiller p_10797_) {
-        return (Map<String, Config.ShaderConfigPreset>) CompletableFuture.supplyAsync(() -> {
-            Map<String, Config.ShaderConfigPreset> mergedPresets = new HashMap<>();
-            Type mapType = new TypeToken<Map<String, Config.ShaderConfigPreset>>() {
-            }.getType();
-            for (Resource resource : manager.getResourceStack(RESOURCE_ID)) {
-                try (BufferedReader reader = resource.openAsReader()) {
-                    Map<String, Config.ShaderConfigPreset> presets = GSON.fromJson(reader, mapType);
-                    if (presets == null) continue;
-                    mergedPresets.putAll(presets);
-                } catch (Exception exception) {
-                    Main.LOGGER.warn("Failed to parse shader presets {} in pack {}", RESOURCE_ID, resource.sourcePackId(), exception);
-                }
+        Map<String, Config.ShaderConfigPreset> mergedPresets = new HashMap<>();
+        Type mapType = new TypeToken<Map<String, Config.ShaderConfigPreset>>() {
+        }.getType();
+        for (Resource resource : manager.getResourceStack(RESOURCE_ID)) {
+            try (BufferedReader reader = resource.openAsReader()) {
+                Map<String, Config.ShaderConfigPreset> presets = GSON.fromJson(reader, mapType);
+                if (presets == null) continue;
+                mergedPresets.putAll(presets);
+            } catch (Exception exception) {
+                Main.LOGGER.warn("Failed to parse shader presets {} in pack {}", RESOURCE_ID, resource.sourcePackId(), exception);
             }
+        }
 
-            mergedPresets.values().removeAll(Collections.singleton(null));
+        mergedPresets.values().removeAll(Collections.singleton(null));
 
-            for (Map.Entry<String, Config.ShaderConfigPreset> entry : mergedPresets.entrySet()) {
-                entry.getValue().editable = false;
-                entry.getValue().key = entry.getKey();
-            }
+        for (Map.Entry<String, Config.ShaderConfigPreset> entry : mergedPresets.entrySet()) {
+            entry.getValue().editable = false;
+            entry.getValue().key = entry.getKey();
+        }
 
-            return mergedPresets;
-        });
+        return mergedPresets;
     }
 
     @Override

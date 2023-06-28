@@ -1,4 +1,5 @@
 {
+  "betterclouds.message.bc": "§e[§bBC§b§e]§r",
   "betterclouds.message.reloadingConfig": "Reloading config...",
   "betterclouds.message.configReloaded": "Config reloaded!",
   "betterclouds.message.profiling.enabled": "Enabled profiling over %d frames, performance will suffer.",

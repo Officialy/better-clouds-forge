@@ -11,8 +11,10 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -24,6 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.GL32;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Mod(Main.MODID)
 public class Main {
@@ -101,7 +105,7 @@ public class Main {
     public static void debugChatMessage(Component message) {
         Minecraft client = Minecraft.getInstance();
         if (client == null) return;
-        client.gui.getChat().addMessage(Component.literal("§e[§bBC§b§e]§r ").append(message));
+        client.gui.getChat().addMessage(Component.translatable(debugChatMessageKey("bc")).append(" ").append(message));
     }
 
     public static String debugChatMessageKey(String id) {
@@ -118,24 +122,17 @@ public class Main {
         CONFIG.load();
 
 //        ClientLifecycleEvents.CLIENT_STARTED.register(client -> glCompat.enableDebugOutputSynchronous());
-
-//        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-//            if (!glCompat.isIncompatible()) return;
-//            CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS)
-//                .execute(() -> client.execute(Main::sendGpuIncompatibleChatMessage));
-//        });
-
-//        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES)
-//            .registerReloadListener(ShaderPresetLoader.INSTANCE);
-
+        glCompat.enableDebugOutputSynchronous();
 
         if (!IS_DEV) return;
         LOGGER.info("Initialized in dev mode, performance might vary");
     }
 
     @SubscribeEvent
-    public void onRegisterCommandEvent(RegisterClientCommandsEvent event) {
-        Commands.register(event.getDispatcher());
+    public void onClientLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (/*glCompat.isIncompatible()*/ true) {
+            CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS).execute(Main::sendGpuIncompatibleChatMessage);
+        }
     }
 
     public static void sendGpuIncompatibleChatMessage() {
@@ -145,8 +142,13 @@ public class Main {
                         .append(Component.literal("\n - "))
                         .append(Component.translatable(debugChatMessageKey("gpuIncompatible.disable"))
                                 .withStyle(style -> style.withItalic(true).withUnderlined(true).withColor(ChatFormatting.GRAY)
-                                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
                                                 "/betterclouds:config gpuIncompatibleMessage false")))));
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommandEvent(RegisterClientCommandsEvent event) {
+        Commands.register(event.getDispatcher());
     }
 
 }
