@@ -130,7 +130,7 @@ public class Main {
 
     @SubscribeEvent
     public void onClientLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (/*glCompat.isIncompatible()*/ true) {
+        if (glCompat.isIncompatible()) {
             CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS).execute(Main::sendGpuIncompatibleChatMessage);
         }
     }

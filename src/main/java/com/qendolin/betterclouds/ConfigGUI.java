@@ -79,7 +79,7 @@ public class ConfigGUI {
     protected final List<Option<?>> commonPresetsGroup = new ArrayList<>();
     protected final List<Option<?>> commonGenerationGroup = new ArrayList<>();
     protected final List<Option<?>> commonAppearanceGroup = new ArrayList<>();
-    protected final List<Option<?>> commonShadersGroup = new ArrayList<>();
+//    protected final List<Option<?>> commonShadersGroup = new ArrayList<>();
     protected final List<Option<?>> generationVisualGroup = new ArrayList<>();
     protected final List<Option<?>> generationPerformanceGroup = new ArrayList<>();
     protected final List<Option<?>> appearanceGeometryGroup = new ArrayList<>();
@@ -87,10 +87,10 @@ public class ConfigGUI {
     protected final List<Option<?>> appearanceColorGroup = new ArrayList<>();
     protected final List<Option<?>> performanceGenerationGroup = new ArrayList<>();
     protected final List<Option<?>> performanceTechnicalGroup = new ArrayList<>();
-    protected final List<Option<?>> shadersGeneralGroup = new ArrayList<>();
-    protected final List<Option<?>> shadersPresetGroup = new ArrayList<>();
-    protected final List<Option<?>> shadersColorGroup = new ArrayList<>();
-    protected final List<Option<?>> shadersTechnicalGroup = new ArrayList<>();
+//    protected final List<Option<?>> shadersGeneralGroup = new ArrayList<>();
+//    protected final List<Option<?>> shadersPresetGroup = new ArrayList<>();
+//    protected final List<Option<?>> shadersColorGroup = new ArrayList<>();
+//    protected final List<Option<?>> shadersTechnicalGroup = new ArrayList<>();
 
     protected final List<Option<?>> shaderConfigPresetOptions = new ArrayList<>();
 
