@@ -3,8 +3,8 @@ package com.qendolin.betterclouds;
 import com.google.common.base.Objects;
 import com.google.gson.InstanceCreator;
 import dev.isxander.yacl3.config.ConfigEntry;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.Mth;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,7 +38,6 @@ public class Config {
         this.scaleFalloffMin = other.scaleFalloffMin;
         this.fadeEdge = other.fadeEdge;
         this.usePersistentBuffers = other.usePersistentBuffers;
-        this.writeDepth = other.writeDepth;
         this.irisSupport = other.irisSupport;
         this.enabled = other.enabled;
         this.cloudOverride = other.cloudOverride;
@@ -89,8 +88,6 @@ public class Config {
     @ConfigEntry
     public boolean usePersistentBuffers = true;
     @ConfigEntry
-    public boolean writeDepth = false;
-    @ConfigEntry
     public boolean irisSupport = true;
     @ConfigEntry
     public boolean cloudOverride = true;
@@ -140,7 +137,7 @@ public class Config {
         if (presets.size() == 0) {
             addFirstPreset();
         }
-        selectedPreset = Mth.clamp(selectedPreset, 0, presets.size() - 1);
+        selectedPreset = MathHelper.clamp(selectedPreset, 0, presets.size() - 1);
         return presets.get(selectedPreset);
     }
 
@@ -170,7 +167,7 @@ public class Config {
     }
 
     public int blockDistance() {
-        return (int) (this.distance * Minecraft.getInstance().options.renderDistance().get() * 16);
+        return (int) (this.distance * MinecraftClient.getInstance().options.getViewDistance().getValue() * 16);
     }
 
     public static class ShaderConfigPreset {

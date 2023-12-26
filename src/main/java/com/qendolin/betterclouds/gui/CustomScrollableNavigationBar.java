@@ -2,11 +2,11 @@ package com.qendolin.betterclouds.gui;
 
 import com.qendolin.betterclouds.mixin.TabNavigationWidgetAccessor;
 import dev.isxander.yacl3.gui.tab.ScrollableNavigationBar;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.TabButton;
-import net.minecraft.client.gui.components.tabs.Tab;
-import net.minecraft.client.gui.components.tabs.TabManager;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.tab.Tab;
+import net.minecraft.client.gui.tab.TabManager;
+import net.minecraft.client.gui.widget.TabButtonWidget;
 
 public class CustomScrollableNavigationBar extends ScrollableNavigationBar {
 
@@ -18,14 +18,14 @@ public class CustomScrollableNavigationBar extends ScrollableNavigationBar {
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        Minecraft client = Minecraft.getInstance();
-        if (client == null || client.level == null || !(client.screen instanceof ConfigScreen)) {
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.world == null || !(client.currentScreen instanceof ConfigScreen)) {
             super.render(context, mouseX, mouseY, delta);
         } else {
             context.fill(0, 0, this.width, 22, 0x6b000000);
             context.fill(0, 22, this.width, 23, 0xff000000);
-            for (TabButton tabButtonWidget : ((TabNavigationWidgetAccessor) this).getTabButtons()) {
+            for (TabButtonWidget tabButtonWidget : ((TabNavigationWidgetAccessor) this).getTabButtons()) {
                 tabButtonWidget.render(context, mouseX, mouseY, delta);
             }
         }

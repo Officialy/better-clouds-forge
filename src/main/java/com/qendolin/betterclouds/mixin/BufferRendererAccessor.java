@@ -1,18 +1,18 @@
 package com.qendolin.betterclouds.mixin;
 
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.VertexBuffer;
+import net.minecraft.client.gl.VertexBuffer;
+import net.minecraft.client.render.BufferRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(BufferUploader.class)
+@Mixin(BufferRenderer.class)
 public interface BufferRendererAccessor {
-    @Accessor("lastImmediateBuffer")
+    @Accessor("currentVertexBuffer")
     static VertexBuffer getCurrentVertexBuffer() {
         throw new AssertionError();
     }
 
-    @Accessor("lastImmediateBuffer")
+    @Accessor("currentVertexBuffer")
     static void setCurrentVertexBuffer(VertexBuffer buffer) {
         throw new AssertionError();
     }

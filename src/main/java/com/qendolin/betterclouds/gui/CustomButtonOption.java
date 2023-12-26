@@ -3,35 +3,30 @@ package com.qendolin.betterclouds.gui;
 import com.google.common.collect.ImmutableSet;
 import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.gui.YACLScreen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.text.Text;
 import org.apache.commons.lang3.Validate;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public class CustomButtonOption implements ButtonOption {
 
-    private final Supplier<Component> name;
-    private final Component tooltip;
+    private final Supplier<Text> name;
+    private final OptionDescription description;
     private final BiConsumer<YACLScreen, ButtonOption> action;
     private boolean available;
     private final Controller<BiConsumer<YACLScreen, ButtonOption>> controller;
     private final Binding<BiConsumer<YACLScreen, ButtonOption>> binding;
 
     public CustomButtonOption(
-        @NotNull Supplier<Component> name,
-        @Nullable Component tooltip,
+        @NotNull Supplier<Text> name,
+        @NotNull OptionDescription description,
         @NotNull BiConsumer<YACLScreen, ButtonOption> action,
         boolean available
     ) {
         this.name = name;
-        this.tooltip = tooltip == null ? Component.empty() : tooltip;
+        this.description = description;
         this.action = action;
         this.available = available;
         this.controller = new CustomActionController(this);
@@ -43,19 +38,18 @@ public class CustomButtonOption implements ButtonOption {
     }
 
     @Override
-    public @NotNull Component name() {
+    public @NotNull Text name() {
         return name.get();
     }
 
     @Override
-    public @NotNull OptionDescription description() {
-        // TODO
-        return OptionDescription.EMPTY;
+    public @NotNull Text tooltip() {
+        return description().text();
     }
 
     @Override
-    public @NotNull Component tooltip() {
-        return tooltip;
+    public @NotNull OptionDescription description() {
+        return description;
     }
 
     @Override
@@ -145,24 +139,23 @@ public class CustomButtonOption implements ButtonOption {
         }
     }
 
-    @ApiStatus.Internal
     public static final class Builder {
-        private Supplier<Component> name;
-        private final List<Component> tooltipLines = new ArrayList<>();
+        private Supplier<Text> name;
+        private OptionDescription description = OptionDescription.EMPTY;
         private boolean available = true;
         private BiConsumer<YACLScreen, ButtonOption> action;
 
-        public Builder name(@NotNull Supplier<Component> name) {
+        public Builder name(@NotNull Supplier<Text> name) {
             Validate.notNull(name, "`name` cannot be null");
 
             this.name = name;
             return this;
         }
 
-        public Builder tooltip(@NotNull Component... tooltips) {
-            Validate.notNull(tooltips, "`tooltips` cannot be empty");
+        public Builder description(@NotNull OptionDescription description) {
+            Validate.notNull(description, "`description` cannot be null");
 
-            tooltipLines.addAll(List.of(tooltips));
+            this.description = description;
             return this;
         }
 
@@ -183,16 +176,7 @@ public class CustomButtonOption implements ButtonOption {
             Validate.notNull(name, "`name` must not be null when building `Option`");
             Validate.notNull(action, "`action` must not be null when building `Option`");
 
-            MutableComponent concatenatedTooltip = Component.empty();
-            boolean first = true;
-            for (Component line : tooltipLines) {
-                if (!first) concatenatedTooltip.append("\n");
-                first = false;
-
-                concatenatedTooltip.append(line);
-            }
-
-            return new CustomButtonOption(name, concatenatedTooltip, action, available);
+            return new CustomButtonOption(name, description, action, available);
         }
     }
 }

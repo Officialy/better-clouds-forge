@@ -1,6 +1,6 @@
 package com.qendolin.betterclouds.mixin;
 
-import com.mojang.blaze3d.vertex.VertexBuffer;
+import net.minecraft.client.gl.VertexBuffer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -12,6 +12,6 @@ public interface VertexBufferAccessor {
     @Accessor("indexBufferId")
     int getIndexBufferId();
 
-    @Accessor("arrayObjectId")
+    @Accessor("vertexArrayId")
     int getVertexArrayId();
 }

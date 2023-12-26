@@ -11,11 +11,11 @@ import dev.isxander.yacl3.gui.controllers.TickBoxController;
 import dev.isxander.yacl3.gui.controllers.slider.FloatSliderController;
 import dev.isxander.yacl3.gui.controllers.slider.IntegerSliderController;
 import dev.isxander.yacl3.gui.controllers.string.StringController;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-import net.minecraft.util.Tuple;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Pair;
+import net.minecraft.util.math.MathHelper;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -60,7 +60,6 @@ public class ConfigGUI {
     public final Option<Boolean> cloudOverride;
     public final Option<Float> sunPathAngle;
     public final Option<Boolean> useIrisFBO;
-    public final Option<Boolean> writeDepth;
     public final Option<Float> upscaleResolutionFactor;
     public final Option<Boolean> usePersistentBuffers;
     public final Option<Integer> selectedPreset;
@@ -68,18 +67,18 @@ public class ConfigGUI {
     public final ButtonOption copyPresetButton;
     public final ButtonOption removePresetButton;
 
-    protected final List<Tuple<ConfigCategory.Builder, List<Tuple<OptionGroup.Builder, List<Option<?>>>>>> categories = new ArrayList<>();
+    protected final List<Pair<ConfigCategory.Builder, List<Pair<OptionGroup.Builder, List<Option<?>>>>>> categories = new ArrayList<>();
 
-    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> commonCategory = new ArrayList<>();
-    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> generationCategory = new ArrayList<>();
-    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> appearanceCategory = new ArrayList<>();
-    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> performanceCategory = new ArrayList<>();
-//    protected final List<Tuple<OptionGroup.Builder, List<Option<?>>>> shadersCategory = new ArrayList<>();
+    protected final List<Pair<OptionGroup.Builder, List<Option<?>>>> commonCategory = new ArrayList<>();
+    protected final List<Pair<OptionGroup.Builder, List<Option<?>>>> generationCategory = new ArrayList<>();
+    protected final List<Pair<OptionGroup.Builder, List<Option<?>>>> appearanceCategory = new ArrayList<>();
+    protected final List<Pair<OptionGroup.Builder, List<Option<?>>>> performanceCategory = new ArrayList<>();
+    protected final List<Pair<OptionGroup.Builder, List<Option<?>>>> shadersCategory = new ArrayList<>();
 
     protected final List<Option<?>> commonPresetsGroup = new ArrayList<>();
     protected final List<Option<?>> commonGenerationGroup = new ArrayList<>();
     protected final List<Option<?>> commonAppearanceGroup = new ArrayList<>();
-//    protected final List<Option<?>> commonShadersGroup = new ArrayList<>();
+    protected final List<Option<?>> commonShadersGroup = new ArrayList<>();
     protected final List<Option<?>> generationVisualGroup = new ArrayList<>();
     protected final List<Option<?>> generationPerformanceGroup = new ArrayList<>();
     protected final List<Option<?>> appearanceGeometryGroup = new ArrayList<>();
@@ -87,10 +86,10 @@ public class ConfigGUI {
     protected final List<Option<?>> appearanceColorGroup = new ArrayList<>();
     protected final List<Option<?>> performanceGenerationGroup = new ArrayList<>();
     protected final List<Option<?>> performanceTechnicalGroup = new ArrayList<>();
-//    protected final List<Option<?>> shadersGeneralGroup = new ArrayList<>();
-//    protected final List<Option<?>> shadersPresetGroup = new ArrayList<>();
-//    protected final List<Option<?>> shadersColorGroup = new ArrayList<>();
-//    protected final List<Option<?>> shadersTechnicalGroup = new ArrayList<>();
+    protected final List<Option<?>> shadersGeneralGroup = new ArrayList<>();
+    protected final List<Option<?>> shadersPresetGroup = new ArrayList<>();
+    protected final List<Option<?>> shadersColorGroup = new ArrayList<>();
+    protected final List<Option<?>> shadersTechnicalGroup = new ArrayList<>();
 
     protected final List<Option<?>> shaderConfigPresetOptions = new ArrayList<>();
 
@@ -168,13 +167,13 @@ public class ConfigGUI {
             .build();
         this.enabled = createOption(boolean.class, "enabled")
             .binding(defaults.enabled, () -> config.enabled, val -> config.enabled = val)
-            .customController(opt -> new BooleanController(opt, val -> Component.translatable(LANG_KEY_PREFIX + ".entry.enabled." + val), false))
+            .customController(opt -> new BooleanController(opt, val -> Text.translatable(LANG_KEY_PREFIX + ".entry.enabled." + val), false))
             .build();
         this.fadeEdge = createOption(float.class, "fadeEdge")
             .binding(defaults.fadeEdge, () -> config.fadeEdge, val -> config.fadeEdge = val)
             .customController(opt -> new FloatSliderController(opt, 0.1f, 0.5f, 0.01f, ConfigGUI::formatAsPercent))
             .build();
-        this.irisDisclaimer = LabelOption.create(Component.translatable(LANG_KEY_PREFIX + ".text.shaders"));
+        this.irisDisclaimer = LabelOption.create(Text.translatable(LANG_KEY_PREFIX + ".text.shaders"));
         this.irisSupport = createOption(boolean.class, "irisSupport")
             .binding(defaults.irisSupport, () -> config.irisSupport, val -> config.irisSupport = val)
             .customController(TickBoxController::new)
@@ -185,10 +184,6 @@ public class ConfigGUI {
             .build();
         this.useIrisFBO = createOption(boolean.class, "useIrisFBO")
             .binding(defaults.useIrisFBO, () -> config.useIrisFBO, val -> config.useIrisFBO = val)
-            .customController(TickBoxController::new)
-            .build();
-        this.writeDepth = createOption(boolean.class, "writeDepth")
-            .binding(defaults.writeDepth, () -> config.writeDepth, val -> config.writeDepth = val)
             .customController(TickBoxController::new)
             .build();
         this.usePersistentBuffers = createOption(boolean.class, "usePersistentBuffers")
@@ -202,21 +197,21 @@ public class ConfigGUI {
             .binding(defaults.selectedPreset, () -> config.selectedPreset, val -> config.selectedPreset = val)
             .customController(opt -> new SelectController<>(opt, config.presets, (i, preset) -> {
                 if (preset.title.isBlank()) {
-                    return Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.untitled")
-                        .withStyle(style -> style.withColor(ChatFormatting.GRAY).withItalic(true));
+                    return Text.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.untitled")
+                        .styled(style -> style.withColor(Formatting.GRAY).withItalic(true));
                 } else if (!preset.editable) {
-                    return Component.literal(preset.title)
-                        .withStyle(style -> style.withItalic(true));
+                    return Text.literal(preset.title)
+                        .styled(style -> style.withItalic(true));
                 } else if (presetsToBeDeleted.contains(preset)) {
-                    return Component.literal(preset.title).withStyle(style -> style.withStrikethrough(true));
+                    return Text.literal(preset.title).styled(style -> style.withStrikethrough(true));
                 } else {
-                    return Component.literal(preset.title);
+                    return Text.literal(preset.title);
                 }
             }))
             .listener((opt, i) -> {
                 // The 'instant' listener gets called later, applyValue is called now manually
                 opt.applyValue();
-                if (opt.controller() instanceof SelectController<?> select) {
+                if (opt.controller() instanceof SelectController select) {
                     select.updateValues();
                 }
                 for (Option<?> option : shaderConfigPresetOptions) {
@@ -307,10 +302,10 @@ public class ConfigGUI {
             opacity));
         shaderConfigPresetOptions.forEach(opt -> opt.setAvailable(config.preset().editable));
 
-        final Component removeButtonRemoveText = Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.remove");
-        final Component removeButtonRestoreText = Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.restore");
+        final Text removeButtonRemoveText = Text.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.remove");
+        final Text removeButtonRestoreText = Text.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.restore");
 
-           this.removePresetButton = CustomButtonOption.createBuilder()
+        this.removePresetButton = CustomButtonOption.createBuilder()
             .name(() -> presetsToBeDeleted.contains(config.preset()) ? removeButtonRestoreText : removeButtonRemoveText)
             .available(config.presets.size() > 1)
             .action((screen, option) -> {
@@ -327,10 +322,10 @@ public class ConfigGUI {
             .build();
         updateRemovePresetButton();
         this.copyPresetButton = CustomButtonOption.createBuilder()
-            .name(() -> Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.copy"))
+            .name(() -> Text.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.copy"))
             .action((screen, buttonOption) -> {
                 Config.ShaderConfigPreset preset = new Config.ShaderConfigPreset(config.preset());
-                preset.title = Component.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.copyOf", config.preset().title).getString();
+                preset.title = Text.translatable(LANG_KEY_PREFIX + ".entry.shaderPreset.copyOf", config.preset().title).getString();
                 preset.markAsCopy();
                 config.presets.add(0, preset);
                 selectedPreset.requestSet(0);
@@ -341,65 +336,65 @@ public class ConfigGUI {
             })
             .build();
 
-        categories.add(new Tuple<>(ConfigCategory.createBuilder()
+        categories.add(new Pair<>(ConfigCategory.createBuilder()
             .name(categoryLabel("common")), commonCategory));
-        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        commonCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("common.presets")), commonPresetsGroup));
         commonPresetsGroup.addAll(List.of(selectedPreset, presetTitle, copyPresetButton, removePresetButton));
-        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        commonCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("common.generation")), commonGenerationGroup));
         commonGenerationGroup.addAll(List.of(sizeXZ, sizeY, spacing, samplingScale, distance));
-        commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        commonCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("common.appearance")), commonAppearanceGroup));
         commonAppearanceGroup.addAll(List.of(enabled, opacity, opacityFactor));
-   /*todo forge oculus support     commonCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        commonCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("common.shaders")), commonShadersGroup));
         commonShadersGroup.addAll(List.of(irisDisclaimer, irisSupport, gamma, dayBrightness, nightBrightness, sunPathAngle));
-*/
-        categories.add(new Tuple<>(ConfigCategory.createBuilder()
+
+        categories.add(new Pair<>(ConfigCategory.createBuilder()
             .name(categoryLabel("generation")), generationCategory));
-        generationCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        generationCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("generation.visual")), generationVisualGroup));
         generationVisualGroup.addAll(List.of(
             randomPlacement, fuzziness, sparsity, yRange, yOffset, spacing, samplingScale, shuffle
         ));
-        generationCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        generationCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("generation.performance")), generationPerformanceGroup));
         generationPerformanceGroup.addAll(List.of(distance, chunkSize));
 
-        categories.add(new Tuple<>(ConfigCategory.createBuilder()
+        categories.add(new Pair<>(ConfigCategory.createBuilder()
             .name(categoryLabel("appearance")), appearanceCategory));
-        appearanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        appearanceCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("appearance.geometry")), appearanceGeometryGroup));
         appearanceGeometryGroup.addAll(List.of(sizeXZ, sizeY, scaleFalloffMin, travelSpeed, windFactor));
-        appearanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        appearanceCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("appearance.visibility")), appearanceVisibilityGroup));
         appearanceVisibilityGroup.addAll(List.of(enabled, opacity, opacityFactor, opacityExponent, fadeEdge));
-        appearanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        appearanceCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("appearance.color")), appearanceColorGroup));
         appearanceColorGroup.addAll(List.of(colorVariationFactor, gamma, dayBrightness, nightBrightness, saturation, tint));
 
-        categories.add(new Tuple<>(ConfigCategory.createBuilder()
+        categories.add(new Pair<>(ConfigCategory.createBuilder()
             .name(categoryLabel("performance")), performanceCategory));
-        performanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        performanceCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("performance.generation")), performanceGenerationGroup));
         performanceGenerationGroup.addAll(List.of(spacing, chunkSize, distance, sparsity, fuzziness, shuffle));
-        performanceCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        performanceCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("performance.technical")), performanceTechnicalGroup));
         performanceTechnicalGroup.addAll(List.of(usePersistentBuffers));
-/*
-categories.add(new Tuple<>(ConfigCategory.createBuilder()
+
+        categories.add(new Pair<>(ConfigCategory.createBuilder()
             .name(categoryLabel("shaders")), shadersCategory));
-        shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        shadersCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("shaders.general")), shadersGeneralGroup));
         shadersGeneralGroup.addAll(List.of(irisDisclaimer, irisSupport, cloudOverride));
-        shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        shadersCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("shaders.presets")), shadersPresetGroup));
         shadersPresetGroup.addAll(List.of(selectedPreset, presetTitle, copyPresetButton, removePresetButton));
-        shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        shadersCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("shaders.color")), shadersColorGroup));
         shadersColorGroup.addAll(List.of(gamma, dayBrightness, nightBrightness, saturation, tint));
-        shadersCategory.add(new Tuple<>(OptionGroup.createBuilder()
+        shadersCategory.add(new Pair<>(OptionGroup.createBuilder()
             .name(groupLabel("shaders.technical")), shadersTechnicalGroup));
 
         shadersTechnicalGroup.addAll(List.of(sunPathAngle,
@@ -408,8 +403,7 @@ categories.add(new Tuple<>(ConfigCategory.createBuilder()
             sunsetStartTime,
             sunsetEndTime,
             upscaleResolutionFactor,
-            useIrisFBO,
-            writeDepth));*/
+            useIrisFBO));
     }
 
     private void updateRemovePresetButton() {
@@ -419,28 +413,28 @@ categories.add(new Tuple<>(ConfigCategory.createBuilder()
 
     public static ConfigScreen create(Screen parent) {
         YetAnotherConfigLib yacl = YetAnotherConfigLib.create(Main.getConfigInstance(),
-            (defaults, config, builder) -> new ConfigGUI(defaults, config).formatAsTwoDecimals(builder));
+            (defaults, config, builder) -> new ConfigGUI(defaults, config).assemble(builder));
         return new ConfigScreen(yacl, parent);
     }
 
-    public YetAnotherConfigLib.Builder formatAsTwoDecimals(YetAnotherConfigLib.Builder builder) {
+    public YetAnotherConfigLib.Builder assemble(YetAnotherConfigLib.Builder builder) {
         builder = builder
             .save(() -> {
                 for (Config.ShaderConfigPreset preset : presetsToBeDeleted) {
                     config.presets.remove(preset);
                 }
-                config.selectedPreset = Mth.clamp(config.selectedPreset, 0, config.presets.size());
+                config.selectedPreset = MathHelper.clamp(config.selectedPreset, 0, config.presets.size());
                 config.sortPresets();
                 Main.getConfigInstance().save();
             })
-            .title(Component.translatable(LANG_KEY_PREFIX + ".title"));
+            .title(Text.translatable(LANG_KEY_PREFIX + ".title"));
 
-        for (Tuple<ConfigCategory.Builder, List<Tuple<OptionGroup.Builder, List<Option<?>>>>> categoryPair : categories) {
-            ConfigCategory.Builder categoryBuilder = categoryPair.getA();
-            for (Tuple<OptionGroup.Builder, List<Option<?>>> groupPair : categoryPair.getB()) {
-                if (groupPair.getB().isEmpty()) continue;
-                OptionGroup.Builder groupBuilder = groupPair.getA();
-                groupBuilder.options(groupPair.getB());
+        for (Pair<ConfigCategory.Builder, List<Pair<OptionGroup.Builder, List<Option<?>>>>> categoryPair : categories) {
+            ConfigCategory.Builder categoryBuilder = categoryPair.getLeft();
+            for (Pair<OptionGroup.Builder, List<Option<?>>> groupPair : categoryPair.getRight()) {
+                if (groupPair.getRight().isEmpty()) continue;
+                OptionGroup.Builder groupBuilder = groupPair.getLeft();
+                groupBuilder.options(groupPair.getRight());
                 categoryBuilder.group(groupBuilder.build());
             }
             builder.category(categoryBuilder.build());
@@ -463,39 +457,39 @@ categories.add(new Tuple<>(ConfigCategory.createBuilder()
 
     public static final String LANG_KEY_PREFIX = Main.MODID + ".config";
 
-    private static Component formatAsBlocksPerSecond(Float value) {
-        return Component.translatable(LANG_KEY_PREFIX + ".unit.blocks_per_second", String.format("%.1f", value * 20));
+    private static Text formatAsBlocksPerSecond(Float value) {
+        return Text.translatable(LANG_KEY_PREFIX + ".unit.blocks_per_second", String.format("%.1f", value * 20));
     }
 
-    private static Component formatAsPercent(float value) {
-        return Component.translatable(LANG_KEY_PREFIX + ".unit.percent", ((int) (value * 100)));
+    private static Text formatAsPercent(float value) {
+        return Text.translatable(LANG_KEY_PREFIX + ".unit.percent", ((int) (value * 100)));
     }
 
-    private static Component formatAsTimes(float value) {
-        return Component.translatable(LANG_KEY_PREFIX + ".unit.times", String.format("%.2f", value));
+    private static Text formatAsTimes(float value) {
+        return Text.translatable(LANG_KEY_PREFIX + ".unit.times", String.format("%.2f", value));
     }
 
-    private static Component formatAsDegrees(Float value) {
-        return Component.translatable(LANG_KEY_PREFIX + ".unit.degrees", String.format("%.0f", value));
+    private static Text formatAsDegrees(Float value) {
+        return Text.translatable(LANG_KEY_PREFIX + ".unit.degrees", String.format("%.0f", value));
     }
 
-    private static Component categoryLabel(String key) {
-        return Component.translatable(LANG_KEY_PREFIX + ".category." + key);
+    private static Text categoryLabel(String key) {
+        return Text.translatable(LANG_KEY_PREFIX + ".category." + key);
     }
 
-    private static Component groupLabel(String key) {
-        return Component.translatable(LANG_KEY_PREFIX + ".group." + key);
+    private static Text groupLabel(String key) {
+        return Text.translatable(LANG_KEY_PREFIX + ".group." + key);
     }
 
-    private static Component optionLabel(String key) {
-        return Component.translatable(LANG_KEY_PREFIX + ".entry." + key);
+    private static Text optionLabel(String key) {
+        return Text.translatable(LANG_KEY_PREFIX + ".entry." + key);
     }
 
-    private static Component optionDescription(String key) {
-        return Component.translatable(LANG_KEY_PREFIX + ".entry." + key + ".description");
+    private static Text optionDescription(String key) {
+        return Text.translatable(LANG_KEY_PREFIX + ".entry." + key + ".description");
     }
 
-    private static Component formatAsTwoDecimals(Float value) {
-        return Component.literal(String.format("%,.2f", value).replaceAll("[\u00a0\u202F]", " "));
+    private static Text formatAsTwoDecimals(Float value) {
+        return Text.literal(String.format("%,.2f", value).replaceAll("[\u00a0\u202F]", " "));
     }
 }

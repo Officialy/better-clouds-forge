@@ -1,18 +1,14 @@
 package com.qendolin.betterclouds.gui;
 
-import com.qendolin.betterclouds.ConfigGUI;
-import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.PlaceholderCategory;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.utils.OptionUtils;
-import dev.isxander.yacl3.gui.TooltipButtonWidget;
 import dev.isxander.yacl3.gui.YACLScreen;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.ScreenRect;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.Text;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -24,20 +20,20 @@ public class ConfigScreen extends YACLScreen {
 
     @Override
     protected void init() {
-        assert minecraft != null;
+        assert client != null;
         tabNavigationBar = new CustomScrollableNavigationBar(this.width, tabManager, config.categories()
             .stream()
             .map(category -> {
                 if (category instanceof PlaceholderCategory placeholder)
                     return new PlaceholderTab(placeholder);
-                return new CustomCategoryTab(minecraft, this, () -> tabArea, category);
+                return new CustomCategoryTab(client, this, () -> tabArea, category);
             }).toList());
         tabNavigationBar.selectTab(0, false);
-        tabNavigationBar.arrangeElements();
-        ScreenRectangle navBarArea = tabNavigationBar.getRectangle();
-        tabArea = new ScreenRectangle(0, navBarArea.height() - 1, this.width, this.height - navBarArea.height() + 1);
+        tabNavigationBar.init();
+        ScreenRect navBarArea = tabNavigationBar.getNavigationFocus();
+        tabArea = new ScreenRect(0, navBarArea.height() - 1, this.width, this.height - navBarArea.height() + 1);
         tabManager.setTabArea(tabArea);
-        addRenderableWidget(tabNavigationBar);
+        addDrawableChild(tabNavigationBar);
 
         config.initConsumer().accept(this);
     }
@@ -66,37 +62,37 @@ public class ConfigScreen extends YACLScreen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics context) {
-        if (minecraft == null || minecraft.level == null) {
-            super.renderBackground(context);
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (client == null || client.world == null) {
+            super.renderBackground(context, mouseX, mouseY, delta);
         } else {
             context.fill(0, 0, width / 3, height, 0x6b000000);
         }
     }
 
-    public void renderDirtBackground(GuiGraphics context) {
-        if (minecraft == null || minecraft.level == null) {
-            super.renderDirtBackground(context);
+    public void renderBackgroundTexture(DrawContext context) {
+        if (client == null || client.world == null) {
+            super.renderBackgroundTexture(context);
         } else {
-            context.fill(width / 3 * 2 + 1, tabArea.top(), width, tabArea.bottom(), 0x6b000000);
+            context.fill(width / 3 * 2 + 1, tabArea.getTop(), width, tabArea.getBottom(), 0x6b000000);
         }
     }
 
     @Override
     protected void finishOrSave() {
-        onClose();
+        close();
     }
 
     @Override
-    public void onClose() {
+    public void close() {
         config.saveFunction().run();
-        super.onClose();
+        super.close();
     }
 
     public static class HiddenScreen extends Screen {
-        public HiddenScreen(Component title, Button showButton) {
+        public HiddenScreen(Text title, ButtonWidget showButton) {
             super(title);
-            addRenderableWidget(showButton);
+            addDrawableChild(showButton);
         }
 
         @Override
@@ -105,9 +101,9 @@ public class ConfigScreen extends YACLScreen {
         }
 
         @Override
-        public void renderBackground(GuiGraphics context) {
-            if (minecraft == null || minecraft.level == null) {
-                super.renderBackground(context);
+        public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+            if (client == null || client.world == null) {
+                super.renderBackground(context, mouseX, mouseY, delta);
             } else {
                 context.fill(0, 0, width / 3, height, 0x6B000000);
             }

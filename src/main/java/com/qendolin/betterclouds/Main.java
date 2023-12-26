@@ -3,53 +3,52 @@ package com.qendolin.betterclouds;
 import com.qendolin.betterclouds.clouds.Debug;
 import com.qendolin.betterclouds.compat.GLCompat;
 import com.qendolin.betterclouds.compat.GsonConfigInstanceBuilderDuck;
-import com.qendolin.betterclouds.compat.Telemetry;
 import dev.isxander.yacl3.config.GsonConfigInstance;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientCommandsEvent;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.fml.loading.FMLLoader;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.GL32;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Mod(Main.MODID)
 public class Main {
     public static final String MODID = "betterclouds";
-    public static final Logger LOGGER = LogManager.getLogger(MODID);
-    public static final boolean IS_DEV = FMLLoader.isProduction(); //todo test
+    public static final boolean IS_DEV = FMLLoader.isProduction();
+    public static final boolean IS_CLIENT = FMLLoader.getDist().isClient(); //todo test it   //FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT;
+    public static final NamedLogger LOGGER = new NamedLogger(LogManager.getLogger(MODID), !IS_DEV);
 
     public static GLCompat glCompat;
+//    public static Version version;
 
     private static final GsonConfigInstance<Config> CONFIG;
-
-    public Main() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        modEventBus.addListener(this::onClientSetup);
-        MinecraftForge.EVENT_BUS.register(this);
-    }
+    private static final Path CONFIG_PATH = Path.of("config/betterclouds-v1.json");
 
     static {
-        if (FMLLoader.getDist().equals(Dist.CLIENT)) {
+        if (IS_CLIENT) {
             GsonConfigInstance.Builder<Config> builder = GsonConfigInstance
                     .createBuilder(Config.class)
-                    .setPath(Path.of("config/betterclouds-v1.json"));
+                    .setPath(CONFIG_PATH);
 
             if (builder instanceof GsonConfigInstanceBuilderDuck) {
                 //noinspection unchecked
@@ -63,30 +62,36 @@ public class Main {
         } else {
             CONFIG = null;
         }
+
+    }
+
+    public Main() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(this::onClientSetup);
+        NeoForge.EVENT_BUS.register(this);
     }
 
     public static void initGlCompat() {
-        glCompat = new GLCompat(IS_DEV);
+        try {
+            glCompat = new GLCompat(IS_DEV);
+        } catch (Exception e) {
+//            Telemetry.INSTANCE.sendUnhandledException(e);
+            throw e;
+        }
+
         if (glCompat.isIncompatible()) {
-            LOGGER.warn("Your GPU is not compatible with Better Clouds. OpenGL 4.3 is required!");
+            LOGGER.warn("Your GPU is not compatible with Better Clouds. Try updating your drivers?");
             LOGGER.info(" - Vendor:       {}", GL32.glGetString(GL32.GL_VENDOR));
             LOGGER.info(" - Renderer:     {}", GL32.glGetString(GL32.GL_RENDERER));
             LOGGER.info(" - GL Version:   {}", GL32.glGetString(GL32.GL_VERSION));
             LOGGER.info(" - GLSL Version: {}", GL32.glGetString(GL32.GL_SHADING_LANGUAGE_VERSION));
             LOGGER.info(" - Extensions:   {}", String.join(", ", glCompat.supportedCheckedExtensions));
             LOGGER.info(" - Functions:    {}", String.join(", ", glCompat.supportedCheckedFunctions));
-        }
-        if (getConfig().lastTelemetryVersion < Telemetry.VERSION && Telemetry.INSTANCE != null) {
-            Telemetry.INSTANCE.sendSystemInfo()
-                    .whenComplete((success, throwable) -> {
-                        Minecraft client = Minecraft.getInstance();
-                        if (success && client != null) {
-                            client.execute(() -> {
-                                getConfig().lastTelemetryVersion = Telemetry.VERSION;
-                                CONFIG.save();
-                            });
-                        }
-                    });
+        } else if (glCompat.isPartiallyIncompatible()) {
+            LOGGER.warn("Your GPU is not fully compatible with Better Clouds.");
+            for (String fallback : glCompat.usedFallbacks) {
+                LOGGER.info("- Using {} fallback", fallback);
+            }
         }
     }
 
@@ -99,30 +104,34 @@ public class Main {
     }
 
     public static void debugChatMessage(String id, Object... args) {
-        debugChatMessage(Component.translatable(debugChatMessageKey(id), args));
+        debugChatMessage(Text.translatable(debugChatMessageKey(id), args));
     }
 
-    public static void debugChatMessage(Component message) {
-        Minecraft client = Minecraft.getInstance();
-        if (client == null) return;
-        client.gui.getChat().addMessage(Component.translatable(debugChatMessageKey("bc")).append(" ").append(message));
+    public static void debugChatMessage(Text message) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.world == null) return;
+        client.inGameHud.getChatHud().addMessage(Text.literal("§e[§bBC§b§e]§r ").append(message));
     }
 
     public static String debugChatMessageKey(String id) {
         return MODID + ".message." + id;
     }
 
-    static GsonConfigInstance<Config> getConfigInstance() {
+//    public static Version getVersion() {
+//        return version;
+//    }
+
+    public static GsonConfigInstance<Config> getConfigInstance() {
         return CONFIG;
     }
 
     public void onClientSetup(FMLClientSetupEvent event) {
-        if (CONFIG == null)
-            throw new IllegalStateException("CONFIG is null!");
-        CONFIG.load();
+        loadConfig();
 
 //        ClientLifecycleEvents.CLIENT_STARTED.register(client -> glCompat.enableDebugOutputSynchronous());
-        glCompat.enableDebugOutputSynchronous();
+//        glCompat.enableDebugOutputSynchronous();
+
+//        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(ShaderPresetLoader.INSTANCE);
 
         if (!IS_DEV) return;
         LOGGER.info("Initialized in dev mode, performance might vary");
@@ -133,22 +142,78 @@ public class Main {
         if (glCompat.isIncompatible()) {
             CompletableFuture.delayedExecutor(3, TimeUnit.SECONDS).execute(Main::sendGpuIncompatibleChatMessage);
         }
+        if (glCompat.isIncompatible()) {
+            CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(Main::sendGpuIncompatibleChatMessage);
+        } else if (glCompat.isPartiallyIncompatible()) {
+            CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(Main::sendGpuPartiallyIncompatibleChatMessage);
+        }
+    }
+
+    private void loadConfig() {
+        assert CONFIG != null;
+
+        try {
+            CONFIG.load();
+            return;
+        } catch (Exception loadException) {
+            LOGGER.error("Failed to load config: ", loadException);
+        }
+
+        File file = CONFIG.getPath().toFile();
+        if (file.exists() && file.isFile()) {
+            String backupName = FilenameUtils.getBaseName(file.getName()) +
+                    "-backup-" + new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) +
+                    "." + FilenameUtils.getExtension(file.getName());
+            Path backup = Path.of(CONFIG.getPath().toAbsolutePath().getParent().toString(), backupName);
+            try {
+                Files.copy(file.toPath(), backup, StandardCopyOption.REPLACE_EXISTING);
+                LOGGER.info("Created config backup at: {}", backup);
+            } catch (Exception backupException) {
+                LOGGER.error("Failed to create config backup: ", backupException);
+            }
+        } else if (file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+            LOGGER.info("Deleted old config");
+        }
+
+        try {
+            CONFIG.save();
+            LOGGER.info("Created new config");
+            CONFIG.load();
+        } catch (Exception loadException) {
+            LOGGER.error("Failed to load config again, please report this issue: ", loadException);
+        }
     }
 
     public static void sendGpuIncompatibleChatMessage() {
         if (!getConfig().gpuIncompatibleMessageEnabled) return;
         debugChatMessage(
-                Component.translatable(debugChatMessageKey("gpuIncompatible"))
-                        .append(Component.literal("\n - "))
-                        .append(Component.translatable(debugChatMessageKey("gpuIncompatible.disable"))
-                                .withStyle(style -> style.withItalic(true).withUnderlined(true).withColor(ChatFormatting.GRAY)
-                                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+                Text.translatable(debugChatMessageKey("gpuIncompatible"))
+                        .append(Text.literal("\n - "))
+                        .append(Text.translatable(debugChatMessageKey("disable"))
+                                .styled(style -> style.withItalic(true).withUnderline(true).withColor(Formatting.GRAY)
+                                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                                                 "/betterclouds:config gpuIncompatibleMessage false")))));
+    }
+
+    public static void sendGpuPartiallyIncompatibleChatMessage() {
+        if (!getConfig().gpuIncompatibleMessageEnabled) return;
+        debugChatMessage(
+                Text.translatable(debugChatMessageKey("gpuPartiallyIncompatible"))
+                        .append(Text.literal("\n - "))
+                        .append(Text.translatable(debugChatMessageKey("disable"))
+                                .styled(style -> style.withItalic(true).withUnderline(true).withColor(Formatting.GRAY)
+                                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                                "/betterclouds:config gpuIncompatibleMessage false")))));
+    }
+
+    public void addReloadListenerEvent(AddReloadListenerEvent e) {
+
     }
 
     @SubscribeEvent
     public void onRegisterCommandEvent(RegisterClientCommandsEvent event) {
         Commands.register(event.getDispatcher());
     }
-
 }

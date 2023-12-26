@@ -4,18 +4,20 @@ import com.qendolin.betterclouds.ConfigGUI;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.utils.Dimension;
 import dev.isxander.yacl3.api.utils.MutableDimension;
-import dev.isxander.yacl3.gui.*;
+import dev.isxander.yacl3.gui.OptionDescriptionWidget;
+import dev.isxander.yacl3.gui.OptionListWidget;
+import dev.isxander.yacl3.gui.SearchFieldWidget;
 import dev.isxander.yacl3.gui.tab.ListHolderWidget;
 import dev.isxander.yacl3.gui.tab.TabExt;
 import dev.isxander.yacl3.gui.utils.GuiUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.ScreenRect;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -23,24 +25,24 @@ import java.util.function.Supplier;
 
 public class CustomCategoryTab implements TabExt {
 
-    private final Minecraft client;
+    private final MinecraftClient client;
     private final ConfigScreen screen;
     private final ConfigCategory category;
     private final Tooltip tooltip;
-    private final Supplier<ScreenRectangle> areaGetter;
+    private final Supplier<ScreenRect> areaGetter;
 
     private ListHolderWidget<OptionListWidget> optionList;
-    private final Button saveFinishedButton;
-    private final Button cancelResetButton;
-    private final Button hideShowButton;
+    private final ButtonWidget saveFinishedButton;
+    private final ButtonWidget cancelResetButton;
+    private final ButtonWidget hideShowButton;
     private final SearchFieldWidget searchField;
     private OptionDescriptionWidget descriptionWidget;
 
-    public CustomCategoryTab(Minecraft client, ConfigScreen screen, Supplier<ScreenRectangle> areaGetter, ConfigCategory category) {
+    public CustomCategoryTab(MinecraftClient client, ConfigScreen screen, Supplier<ScreenRect> areaGetter, ConfigCategory category) {
         this.client = client;
         this.screen = screen;
         this.category = category;
-        this.tooltip = Tooltip.create(category.tooltip());
+        this.tooltip = Tooltip.of(category.tooltip());
         this.areaGetter = areaGetter;
 
         int columnWidth = screen.width / 3;
@@ -49,50 +51,50 @@ public class CustomCategoryTab implements TabExt {
         int paddedWidth = columnWidth - padding * 2;
         MutableDimension<Integer> actionDim = Dimension.ofInt(screen.width / 3 * 2 + screen.width / 6, screen.height - padding - 20, paddedWidth, 20);
 
-        saveFinishedButton = Button.builder(Component.literal("Done"), btn -> screen.finishOrSave())
-            .pos(actionDim.x() - actionDim.width() / 2, actionDim.y())
+        saveFinishedButton = ButtonWidget.builder(Text.literal("Done"), btn -> screen.finishOrSave())
+            .position(actionDim.x() - actionDim.width() / 2, actionDim.y())
             .size(actionDim.width(), actionDim.height())
             .build();
 
         actionDim.expand(-actionDim.width() / 2 - 2, 0).move(-actionDim.width() / 2 - 2, -22);
-        cancelResetButton = Button.builder(Component.literal("Cancel"), btn -> screen.cancelOrReset())
-            .pos(actionDim.x() - actionDim.width() / 2, actionDim.y())
+        cancelResetButton = ButtonWidget.builder(Text.literal("Cancel"), btn -> screen.cancelOrReset())
+            .position(actionDim.x() - actionDim.width() / 2, actionDim.y())
             .size(actionDim.width(), actionDim.height())
             .build();
         cancelResetButton.active = false;
 
         actionDim.move(actionDim.width() + 4, 0);
-        hideShowButton = Button.builder(Component.translatable(ConfigGUI.LANG_KEY_PREFIX + ".hide"),
+        hideShowButton = ButtonWidget.builder(Text.translatable(ConfigGUI.LANG_KEY_PREFIX + ".hide"),
                 btn -> hideOrShow())
-                .pos(actionDim.x() - actionDim.width() / 2, actionDim.y())
+            .position(actionDim.x() - actionDim.width() / 2, actionDim.y())
             .size(actionDim.width(), actionDim.height())
             .build();
-        hideShowButton.active = client.level != null;
+        hideShowButton.active = client.world != null;
 
         searchField = new SearchFieldWidget(
             screen,
-            client.font,
+            client.textRenderer,
             screen.width / 3 * 2 + screen.width / 6 - paddedWidth / 2 + 1,
             hideShowButton.getY() - 22,
             paddedWidth - 2, 18,
-            Component.translatable("gui.recipebook.search_hint"),
-            Component.translatable("gui.recipebook.search_hint"),
+            Text.translatable("gui.recipebook.search_hint"),
+            Text.translatable("gui.recipebook.search_hint"),
             searchQuery -> optionList.getList().updateSearchQuery(searchQuery)
         );
 
         optionList = new ListHolderWidget<>(
-            () -> new ScreenRectangle(areaGetter.get().position(), areaGetter.get().width() / 3 * 2 + 1, areaGetter.get().height()),
+            () -> new ScreenRect(areaGetter.get().position(), areaGetter.get().width() / 3 * 2 + 1, areaGetter.get().height()),
             new CustomOptionListWidget(screen, category, client, 0, 0, screen.width / 3 * 2 + 1, screen.height, desc -> {
                 descriptionWidget.setOptionDescription(desc);
             })
         );
 
         descriptionWidget = new OptionDescriptionWidget(
-            () -> new ScreenRectangle(
+            () -> new ScreenRect(
                 screen.width / 3 * 2 + padding,
-                areaGetter.get().top() + padding,
+                areaGetter.get().getTop() + padding,
                 paddedWidth,
-                searchField.getY() - 1 - areaGetter.get().top() - padding * 2
+                searchField.getY() - 1 - areaGetter.get().getTop() - padding * 2
             ),
             null
         );
@@ -101,23 +103,40 @@ public class CustomCategoryTab implements TabExt {
     }
 
     public void hideOrShow() {
-        if(client.screen == screen) {
-            hideShowButton.setMessage(Component.translatable(ConfigGUI.LANG_KEY_PREFIX + ".show"));
+        if (client.currentScreen == screen) {
+            hideShowButton.setMessage(Text.translatable(ConfigGUI.LANG_KEY_PREFIX + ".show"));
             Screen hiddenScreen = new ConfigScreen.HiddenScreen(screen.getTitle(), hideShowButton);
             client.setScreen(hiddenScreen);
         } else {
-            hideShowButton.setMessage(Component.translatable(ConfigGUI.LANG_KEY_PREFIX + ".hide"));
+            hideShowButton.setMessage(Text.translatable(ConfigGUI.LANG_KEY_PREFIX + ".hide"));
             client.setScreen(screen);
         }
     }
 
+    private void updateButtons() {
+        boolean pendingChanges = screen.pendingChanges();
+
+        if (Screen.hasShiftDown()) {
+            cancelResetButton.active = true;
+            cancelResetButton.setTooltip(Tooltip.of(Text.translatable(ConfigGUI.LANG_KEY_PREFIX + ".reset.tooltip")));
+        } else {
+            cancelResetButton.active = false;
+            cancelResetButton.setTooltip(Tooltip.of(Text.translatable(ConfigGUI.LANG_KEY_PREFIX + ".reset.tooltip.holdShift")));
+        }
+
+        saveFinishedButton.setMessage(pendingChanges ? Text.translatable("yacl.gui.save") : GuiUtils.translatableFallback("yacl.gui.done", ScreenTexts.DONE));
+        saveFinishedButton.setTooltip(Tooltip.of(pendingChanges ? Text.translatable("yacl.gui.save.tooltip") : Text.translatable("yacl.gui.finished.tooltip")));
+        cancelResetButton.setMessage(pendingChanges ? GuiUtils.translatableFallback("yacl.gui.cancel", ScreenTexts.CANCEL) : Text.translatable("controls.reset"));
+        cancelResetButton.setTooltip(Tooltip.of(pendingChanges ? Text.translatable("yacl.gui.cancel.tooltip") : Text.translatable("yacl.gui.reset.tooltip")));
+    }
+
     @Override
-    public Component getTabTitle() {
+    public Text getTitle() {
         return category.name();
     }
 
     @Override
-    public void visitChildren(Consumer<AbstractWidget> consumer) {
+    public void forEachChild(Consumer<ClickableWidget> consumer) {
         consumer.accept(optionList);
         consumer.accept(saveFinishedButton);
         consumer.accept(cancelResetButton);
@@ -127,14 +146,14 @@ public class CustomCategoryTab implements TabExt {
     }
 
     @Override
-    public void doLayout(ScreenRectangle p_268081_) {
+    public void refreshGrid(ScreenRect screenRectangle) {
 
     }
 
     @Override
     public void tick() {
         updateButtons();
-        searchField.tick();
+//        searchField.tick();
         descriptionWidget.tick();
     }
 
@@ -142,23 +161,6 @@ public class CustomCategoryTab implements TabExt {
     @Override
     public Tooltip getTooltip() {
         return tooltip;
-    }
-
-    private void updateButtons() {
-        boolean pendingChanges = screen.pendingChanges();
-
-        if (Screen.hasShiftDown()) {
-            cancelResetButton.active = true;
-            cancelResetButton.setTooltip(Tooltip.create(Component.translatable(ConfigGUI.LANG_KEY_PREFIX + ".reset.tooltip")));
-        } else {
-            cancelResetButton.active = false;
-            cancelResetButton.setTooltip(Tooltip.create(Component.translatable(ConfigGUI.LANG_KEY_PREFIX + ".reset.tooltip.holdShift")));
-        }
-
-        saveFinishedButton.setMessage(pendingChanges ? Component.translatable("yacl.gui.save") : GuiUtils.translatableFallback("yacl.gui.done", CommonComponents.GUI_DONE));
-        saveFinishedButton.setTooltip(Tooltip.create(pendingChanges ? Component.translatable("yacl.gui.save.tooltip") : Component.translatable("yacl.gui.finished.tooltip")));
-        cancelResetButton.setMessage(pendingChanges ? GuiUtils.translatableFallback("yacl.gui.cancel", CommonComponents.GUI_CANCEL) : Component.translatable("controls.reset"));
-        cancelResetButton.setTooltip(Tooltip.create(pendingChanges ? Component.translatable("yacl.gui.cancel.tooltip") : Component.translatable("yacl.gui.reset.tooltip")));
     }
 
 }
