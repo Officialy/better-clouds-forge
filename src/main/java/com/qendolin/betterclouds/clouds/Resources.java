@@ -198,7 +198,7 @@ public class Resources implements Closeable {
         Debug.trace.ifPresent(snapshot -> snapshot.recordEvent("reloading generator"));
 
         generator = new ChunkedGenerator();
-        generator.allocate(Main.getConfig(), fancy);
+        generator.allocate(fancy);
         generator.clear();
         generator.unbind();
     }
@@ -296,7 +296,7 @@ public class Resources implements Closeable {
             try {
                 reloadShadersInternal(manager, true);
             } catch (Exception e) {
-                Main.sendGpuIncompatibleChatMessage();
+//                Main.sendGpuIncompatibleChatMessage();
                 Main.LOGGER.error(e);
 //                Telemetry.INSTANCE.sendShaderCompileError(e.toString());
                 deleteShaders();
@@ -308,15 +308,13 @@ public class Resources implements Closeable {
     protected void reloadShadersInternal(ResourceManager manager, boolean safeMode) throws IOException {
         deleteShaders();
 
-        Config config = Main.getConfig();
-
         depthShader = DepthShader.create(manager);
         depthShader.bind();
         depthShader.uDepthTexture.setInt(6);
         glCompat.objectLabelDev(glCompat.GL_PROGRAM, depthShader.glId(), "depth");
 
-        int edgeFade = (int) (config.fadeEdge * config.blockDistance());
-        coverageShader = CoverageShader.create(manager, config.sizeXZ, config.sizeY, edgeFade, glCompat.useStencilTextureFallback);
+        int edgeFade = (int) (Config.fadeEdge.get() * Config.blockDistance());
+        coverageShader = CoverageShader.create(manager, Config.sizeXZ.get().floatValue(), Config.sizeY.get().floatValue(), edgeFade, glCompat.useStencilTextureFallback);
         coverageShader.bind();
         coverageShader.uDepthTexture.setInt(0);
         coverageShader.uNoiseTexture.setInt(5);

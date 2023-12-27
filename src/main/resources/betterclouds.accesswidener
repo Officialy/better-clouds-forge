@@ -7,3 +7,7 @@ mutable		field	net/minecraft/client/render/Frustum	y					D
 accessible	field	net/minecraft/client/render/Frustum	y					D
 mutable		field	net/minecraft/client/render/Frustum	z					D
 accessible	field	net/minecraft/client/render/Frustum	z					D
+accessible method net/minecraft/client/gui/widget/EntryListWidget getEntryAtPosition (DD)Lnet/minecraft/client/gui/widget/EntryListWidget$Entry;
+accessible field net/minecraft/client/render/Frustum positionProjectionMatrix Lorg/joml/Matrix4f;
+accessible field net/minecraft/client/render/Frustum recession Lorg/joml/Vector4f;
+

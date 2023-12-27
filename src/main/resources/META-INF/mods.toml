@@ -25,13 +25,5 @@ mandatory=true
 versionRange="[1.20.2,1.21)"
 ordering="NONE"
 side="CLIENT"
-
-[[dependencies.betterclouds]]
-modId = "yet_another_config_lib_v3"
-mandatory = true
-versionRange = "[3.2.1,)"
-ordering = "NONE"
-side = "CLIENT"
-
 [[mixins]]
 config = "betterclouds.mixins.json"

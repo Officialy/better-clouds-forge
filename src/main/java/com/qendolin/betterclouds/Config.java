@@ -2,25 +2,27 @@ package com.qendolin.betterclouds;
 
 import com.google.common.base.Objects;
 import com.google.gson.InstanceCreator;
-import dev.isxander.yacl3.config.ConfigEntry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.MathHelper;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 public class Config {
-
+    public final ModConfigSpec GENERAL_SPEC;
     public static final String DEFAULT_PRESET_KEY = "default";
     public static final InstanceCreator<Config> INSTANCE_CREATOR = type -> new Config();
 
     @SuppressWarnings("unused")
     public Config() {
+        ModConfigSpec.Builder configBuilder = new ModConfigSpec.Builder();
+        setupConfig(configBuilder);
+        GENERAL_SPEC = configBuilder.build();
     }
 
-    public Config(Config other) {
-        this.distance = other.distance;
+       /* this.distance = other.distance;
         this.randomPlacement = other.randomPlacement;
         this.fuzziness = other.fuzziness;
         this.shuffle = other.shuffle;
@@ -46,63 +48,90 @@ public class Config {
         this.presets = other.presets;
         this.presets.replaceAll(ShaderConfigPreset::new);
         this.lastTelemetryVersion = other.lastTelemetryVersion;
-        this.gpuIncompatibleMessageEnabled = other.gpuIncompatibleMessageEnabled;
+        this.gpuIncompatibleMessageEnabled = other.gpuIncompatibleMessageEnabled;*/
+
+    public static ModConfigSpec.BooleanValue enabled;
+
+    public static ModConfigSpec.DoubleValue distance;
+
+    public static ModConfigSpec.DoubleValue randomPlacement;
+
+    public static ModConfigSpec.DoubleValue fuzziness;
+
+    public static ModConfigSpec.BooleanValue shuffle;
+
+    public static ModConfigSpec.DoubleValue yRange;
+
+    public static ModConfigSpec.DoubleValue yOffset;
+
+    public static ModConfigSpec.DoubleValue sparsity;
+
+    public static ModConfigSpec.DoubleValue spacing;
+
+    public static ModConfigSpec.DoubleValue sizeXZ;
+
+    public static ModConfigSpec.DoubleValue sizeY;
+
+    public static ModConfigSpec.DoubleValue travelSpeed;
+
+    public static ModConfigSpec.DoubleValue windFactor;
+
+    public static ModConfigSpec.DoubleValue colorVariationFactor;
+
+    public static ModConfigSpec.IntValue chunkSize;
+
+    public static ModConfigSpec.DoubleValue samplingScale;
+
+    public static ModConfigSpec.DoubleValue scaleFalloffMin;
+
+    public static ModConfigSpec.DoubleValue fadeEdge;
+
+    public static ModConfigSpec.BooleanValue usePersistentBuffers;
+
+    public static ModConfigSpec.BooleanValue irisSupport;
+
+    public static ModConfigSpec.BooleanValue cloudOverride;
+
+    public static ModConfigSpec.BooleanValue useIrisFBO;
+
+    public static ModConfigSpec.IntValue selectedPreset;
+
+    public static List<ShaderConfigPreset> presets = new ArrayList<>();
+
+    public int lastTelemetryVersion = 0;
+
+    public static ModConfigSpec.BooleanValue gpuIncompatibleMessageEnabled;
+
+    private static void setupConfig(ModConfigSpec.Builder builder) {
+
+        enabled = builder.define("is_enabled", true);
+        shuffle = builder.define("shuffle", false);
+        usePersistentBuffers = builder.define("usePersistentBuffers", true);
+        irisSupport = builder.define("irisSupport", true);
+        cloudOverride = builder.define("cloudOverride", true);
+        useIrisFBO = builder.define("useIrisFBO", true);
+        gpuIncompatibleMessageEnabled = builder.define("gpuIncompatibleMessageEnabled", true);
+
+        distance = builder.defineInRange("distance", 4.0, 0.1, 1024.0);
+        randomPlacement = builder.defineInRange("randomPlacement", 0.0, 0.0, 10.0);
+        fuzziness = builder.defineInRange("fuzziness", 1.0, 0.0, 10.0);
+        yRange = builder.defineInRange("yRange", 64.0, 0.0, 256.0);
+        yOffset = builder.defineInRange("yOffset", 0.0, -256.0, 256.0);
+        sparsity = builder.defineInRange("sparsity", 0.0, 0.0, 100.0);
+        spacing = builder.defineInRange("spacing", 5.25, 0.0, 100.0);
+        sizeXZ = builder.defineInRange("sizeXZ", 16.0, 0.0, 100.0);
+        sizeY = builder.defineInRange("sizeY", 8.0, 0.0, 10.0);
+        travelSpeed = builder.defineInRange("travelSpeed", 0.03, 0.0, 100.0);
+        windFactor = builder.defineInRange("windFactor", 1.0, 0.0, 100.0);
+        colorVariationFactor = builder.defineInRange("colorVariationFactor", 1.0, 0.0, 100.0);
+        samplingScale = builder.defineInRange("samplingScale", 1.0, 0.0, 100.0);
+        scaleFalloffMin = builder.defineInRange("scaleFalloffMin", 0.25, 0.0, 100.0);
+        fadeEdge = builder.defineInRange("fadeEdge", 0.15, 0.0, 100.0);
+        chunkSize = builder.defineInRange("chunkSize", 32, 1, 1024);
+        selectedPreset = builder.defineInRange("selectedPreset", 0, 0, 128);
     }
 
-    @ConfigEntry
-    public boolean enabled = true;
-    @ConfigEntry
-    public float distance = 4;
-    @ConfigEntry
-    public float randomPlacement = 1.0f;
-    @ConfigEntry
-    public float fuzziness = 1.0f;
-    @ConfigEntry
-    public boolean shuffle = false;
-    @ConfigEntry
-    public float yRange = 64f;
-    @ConfigEntry
-    public float yOffset = 0f;
-    @ConfigEntry
-    public float sparsity = 0f;
-    @ConfigEntry
-    public float spacing = 5.25f;
-    @ConfigEntry
-    public float sizeXZ = 16f;
-    @ConfigEntry
-    public float sizeY = 8f;
-    @ConfigEntry
-    public float travelSpeed = 0.03f;
-    @ConfigEntry
-    public float windFactor = 1.0f;
-    @ConfigEntry
-    public float colorVariationFactor = 1.0f;
-    @ConfigEntry
-    public int chunkSize = 32;
-    @ConfigEntry
-    public float samplingScale = 1;
-    @ConfigEntry
-    public float scaleFalloffMin = 0.25f;
-    @ConfigEntry
-    public float fadeEdge = 0.15f;
-    @ConfigEntry
-    public boolean usePersistentBuffers = true;
-    @ConfigEntry
-    public boolean irisSupport = true;
-    @ConfigEntry
-    public boolean cloudOverride = true;
-    @ConfigEntry
-    public boolean useIrisFBO = true;
-    @ConfigEntry
-    public int selectedPreset = 0;
-    @ConfigEntry
-    public List<ShaderConfigPreset> presets = new ArrayList<>();
-    @ConfigEntry
-    public int lastTelemetryVersion = 0;
-    @ConfigEntry
-    public boolean gpuIncompatibleMessageEnabled = true;
-
-    public void loadDefaultPresets() {
+    public static void loadDefaultPresets() {
         // Remember which default preset was selected, if any
         String selectedDefaultPreset = preset().key;
         Map<String, ShaderConfigPreset> defaults = new HashMap<>(ShaderPresetLoader.INSTANCE.presets());
@@ -113,8 +142,8 @@ public class Config {
         if (selectedDefaultPreset != null) {
             // Restore the selected default preset
             presets.stream()
-                .filter(preset -> selectedDefaultPreset.equals(preset.key)).findFirst()
-                .ifPresentOrElse(prevSelectedPreset -> selectedPreset = presets.indexOf(prevSelectedPreset), () -> selectedPreset = 0);
+                    .filter(preset -> selectedDefaultPreset.equals(preset.key)).findFirst()
+                    .ifPresentOrElse(prevSelectedPreset -> selectedPreset.set(presets.indexOf(prevSelectedPreset)), () -> selectedPreset.set(0));
         }
 
         if (missingDefault) {
@@ -126,19 +155,19 @@ public class Config {
                 ShaderConfigPreset defaultCopy = new ShaderConfigPreset(defaultPreset);
                 defaultCopy.markAsCopy();
                 presets.add(defaultCopy);
-                selectedPreset = presets.indexOf(defaultCopy);
+                selectedPreset.set(presets.indexOf(defaultCopy));
             }
         }
         sortPresets();
     }
 
     @NotNull
-    public ShaderConfigPreset preset() {
-        if (presets.size() == 0) {
+    public static ShaderConfigPreset preset() {
+        if (presets.isEmpty()) {
             addFirstPreset();
         }
-        selectedPreset = MathHelper.clamp(selectedPreset, 0, presets.size() - 1);
-        return presets.get(selectedPreset);
+        selectedPreset.set(MathHelper.clamp(selectedPreset.get(), 0, presets.size() - 1));
+        return presets.get(selectedPreset.get());
     }
 
     private static boolean isPresetEqualToEmpty(ShaderConfigPreset preset) {
@@ -151,23 +180,25 @@ public class Config {
         return equal;
     }
 
-    public void sortPresets() {
+    public static void sortPresets() {
         ShaderConfigPreset selected = preset();
         Comparator<ShaderConfigPreset> comparator = Comparator.
-            <ShaderConfigPreset, Boolean>comparing(preset -> !preset.editable)
-            .thenComparing(preset -> !DEFAULT_PRESET_KEY.equals(preset.key))
-            .thenComparing(preset -> preset.title);
+                <ShaderConfigPreset, Boolean>comparing(preset -> !preset.editable)
+                .thenComparing(preset -> !DEFAULT_PRESET_KEY.equals(preset.key))
+                .thenComparing(preset -> preset.title);
         presets.sort(comparator);
-        selectedPreset = presets.indexOf(selected);
+        selectedPreset.set(presets.indexOf(selected));
     }
 
-    public void addFirstPreset() {
-        if (presets.size() != 0) return;
+    public static void addFirstPreset() {
+        if (!presets.isEmpty()) return;
         presets.add(new ShaderConfigPreset());
     }
 
-    public int blockDistance() {
-        return (int) (this.distance * MinecraftClient.getInstance().options.getViewDistance().getValue() * 16);
+    public static int blockDistance() {
+        double dist = (distance != null) ? distance.get() : 4;
+//        Main.LOGGER.info("Distance: " + dist);
+        return (int) (dist * MinecraftClient.getInstance().options.getViewDistance().getValue() * 16);
     }
 
     public static class ShaderConfigPreset {
@@ -207,44 +238,44 @@ public class Config {
             //!! NOTE: Don't forget to update `isEqualTo` when adding fields
         }
 
-        @ConfigEntry
+
         public String title;
-        @ConfigEntry
+
         @Nullable
         public String key;
-        @ConfigEntry
+
         public boolean editable = true;
-        @ConfigEntry
+
         public float upscaleResolutionFactor = 1f;
-        @ConfigEntry
+
         public float gamma = 1f;
-        @ConfigEntry
+
         public float sunPathAngle = 0f;
-        @ConfigEntry
+
         public int sunriseStartTime = -785;
-        @ConfigEntry
+
         public int sunriseEndTime = 1163;
-        @ConfigEntry
+
         public int sunsetStartTime = 10837;
-        @ConfigEntry
+
         public int sunsetEndTime = 12785;
-        @ConfigEntry
+
         public float dayBrightness = 1f;
-        @ConfigEntry
+
         public float nightBrightness = 1f;
-        @ConfigEntry
+
         public float saturation = 1f;
-        @ConfigEntry
+
         public float opacity = 0.2f;
-        @ConfigEntry
+
         public float opacityFactor = 1f;
-        @ConfigEntry
+
         public float opacityExponent = 1.5f;
-        @ConfigEntry
+
         public float tintRed = 1f;
-        @ConfigEntry
+
         public float tintGreen = 1f;
-        @ConfigEntry
+
         public float tintBlue = 1f;
 
         public float gamma() {
@@ -264,24 +295,25 @@ public class Config {
             if (this == other) return true;
             if (other == null) return false;
             return editable == other.editable &&
-                Float.compare(other.upscaleResolutionFactor, upscaleResolutionFactor) == 0 &&
-                Float.compare(other.gamma, gamma) == 0 &&
-                Float.compare(other.sunPathAngle, sunPathAngle) == 0 &&
-                sunriseStartTime == other.sunriseStartTime &&
-                sunriseEndTime == other.sunriseEndTime &&
-                sunsetStartTime == other.sunsetStartTime &&
-                sunsetEndTime == other.sunsetEndTime &&
-                Float.compare(other.dayBrightness, dayBrightness) == 0 &&
-                Float.compare(other.nightBrightness, nightBrightness) == 0 &&
-                Float.compare(other.saturation, saturation) == 0 &&
-                Float.compare(other.opacity, opacity) == 0 &&
-                Float.compare(other.opacityFactor, opacityFactor) == 0 &&
-                Float.compare(other.opacityExponent, opacityExponent) == 0 &&
-                Float.compare(other.tintRed, tintRed) == 0 &&
-                Float.compare(other.tintGreen, tintGreen) == 0 &&
-                Float.compare(other.tintBlue, tintBlue) == 0 &&
-                Objects.equal(title, other.title) &&
-                Objects.equal(key, other.key);
+                    Float.compare(other.upscaleResolutionFactor, upscaleResolutionFactor) == 0 &&
+                    Float.compare(other.gamma, gamma) == 0 &&
+                    Float.compare(other.sunPathAngle, sunPathAngle) == 0 &&
+                    sunriseStartTime == other.sunriseStartTime &&
+                    sunriseEndTime == other.sunriseEndTime &&
+                    sunsetStartTime == other.sunsetStartTime &&
+                    sunsetEndTime == other.sunsetEndTime &&
+                    Float.compare(other.dayBrightness, dayBrightness) == 0 &&
+                    Float.compare(other.nightBrightness, nightBrightness) == 0 &&
+                    Float.compare(other.saturation, saturation) == 0 &&
+                    Float.compare(other.opacity, opacity) == 0 &&
+                    Float.compare(other.opacityFactor, opacityFactor) == 0 &&
+                    Float.compare(other.opacityExponent, opacityExponent) == 0 &&
+                    Float.compare(other.tintRed, tintRed) == 0 &&
+                    Float.compare(other.tintGreen, tintGreen) == 0 &&
+                    Float.compare(other.tintBlue, tintBlue) == 0 &&
+                    Objects.equal(title, other.title) &&
+                    Objects.equal(key, other.key);
         }
     }
+
 }

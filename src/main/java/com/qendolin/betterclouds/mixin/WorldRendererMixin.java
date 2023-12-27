@@ -1,5 +1,6 @@
 package com.qendolin.betterclouds.mixin;
 
+import com.qendolin.betterclouds.Config;
 import com.qendolin.betterclouds.Main;
 import com.qendolin.betterclouds.clouds.Debug;
 import com.qendolin.betterclouds.clouds.Renderer;
@@ -13,6 +14,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.world.dimension.DimensionTypes;
+import net.neoforged.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -70,7 +72,9 @@ public abstract class WorldRendererMixin {
     private void onReload(ResourceManager manager, CallbackInfo ci) {
         if (glCompat.isIncompatible()) return;
         try {
-            if (cloudRenderer != null) cloudRenderer.reload(manager);
+            if (cloudRenderer != null) {
+                cloudRenderer.reload(manager);
+            }
         } catch (Exception e) {
 //            Telemetry.INSTANCE.sendUnhandledException(e);
             throw e;
@@ -87,7 +91,7 @@ public abstract class WorldRendererMixin {
         if (cloudRenderer == null) return;
         if (glCompat.isIncompatible()) return;
         if (world == null || !world.getDimensionEntry().matchesKey(DimensionTypes.OVERWORLD)) return;
-        if (!Main.getConfig().enabled) return;
+        if (!Config.enabled.get()) return;
 
         client.getProfiler().push(Main.MODID);
         glCompat.pushDebugGroupDev("Better Clouds");
@@ -107,8 +111,8 @@ public abstract class WorldRendererMixin {
         long startTime = System.nanoTime();
 
         int ticks = this.ticks;
-        if(Debug.animationPause >= 0) {
-            if(Debug.animationPause == 0) Debug.animationPause = ticks;
+        if (Debug.animationPause >= 0) {
+            if (Debug.animationPause == 0) Debug.animationPause = ticks;
             else ticks = Debug.animationPause;
             tickDelta = 0;
         }
@@ -120,7 +124,7 @@ public abstract class WorldRendererMixin {
                 ci.cancel();
                 Debug.trace.ifPresent(Debug.DebugTrace::recordFrame);
                 cloudRenderer.render(ticks, tickDelta, cam, frustumPos, frustum);
-            } else if(prepareResult == Renderer.PrepareResult.NO_RENDER) {
+            } else if (prepareResult == Renderer.PrepareResult.NO_RENDER) {
                 ci.cancel();
             } else {
                 Debug.trace.ifPresent(snapshot -> snapshot.recordEvent("renderer prepare returned " + prepareResult.name()));

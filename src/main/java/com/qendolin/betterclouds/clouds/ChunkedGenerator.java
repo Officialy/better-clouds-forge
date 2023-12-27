@@ -5,6 +5,9 @@ import com.qendolin.betterclouds.Main;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
@@ -14,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Mod.EventBusSubscriber(modid = Main.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ChunkedGenerator implements AutoCloseable {
     private double originX;
     private double originZ;
@@ -31,6 +35,8 @@ public class ChunkedGenerator implements AutoCloseable {
     @Nullable
     private Task swappedTask;
 
+    private static boolean configChanged;
+
     public synchronized boolean canGenerate() {
         return queuedTask != null;
     }
@@ -41,6 +47,12 @@ public class ChunkedGenerator implements AutoCloseable {
 
     public synchronized boolean canRender() {
         return completedTask != null;
+    }
+
+    @SubscribeEvent
+    public static ModConfigEvent.Reloading onConfigReload(ModConfigEvent.Reloading event) {
+        configChanged = true;
+        return event;
     }
 
     public synchronized List<ChunkIndex> chunks() {
@@ -67,12 +79,12 @@ public class ChunkedGenerator implements AutoCloseable {
 
     public synchronized double renderOriginX(double cameraX) {
         if (swappedTask == null) return 0;
-        return swappedTask.chunkX() * swappedTask.options().chunkSize - cameraX + originX;
+        return swappedTask.chunkX() * Config.chunkSize.get() - cameraX + originX;
     }
 
     public synchronized double renderOriginZ(double cameraZ) {
         if (swappedTask == null) return 0;
-        return swappedTask.chunkZ() * swappedTask.options().chunkSize - cameraZ + originZ;
+        return swappedTask.chunkZ() * Config.chunkSize.get() - cameraZ + originZ;
     }
 
     public synchronized int cloudCount() {
@@ -82,7 +94,7 @@ public class ChunkedGenerator implements AutoCloseable {
 
     public synchronized Config config() {
         if (swappedTask == null) return null;
-        return swappedTask.options;
+        return Main.getConfig();
     }
 
     public synchronized boolean generating() {
@@ -103,22 +115,22 @@ public class ChunkedGenerator implements AutoCloseable {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public synchronized boolean reallocateIfStale(Config options, boolean fancy) {
-        int bufferSize = calcBufferSize(options);
+    public synchronized boolean reallocateIfStale(boolean fancy) {
+        int bufferSize = calcBufferSize();
 
-        if (buffer.hasChanged(bufferSize, fancy, options.usePersistentBuffers)) {
+        if (buffer.hasChanged(bufferSize, fancy, Config.usePersistentBuffers.get())) {
             buffer.close();
-            buffer = new Buffer(bufferSize, fancy, options.usePersistentBuffers);
+            buffer = new Buffer(bufferSize, fancy, Config.usePersistentBuffers.get());
             clear();
             return true;
         }
         return false;
     }
 
-    private static int calcBufferSize(Config options) {
-        int distance = options.blockDistance();
-        return MathHelper.floor(distance / options.spacing)
-            + MathHelper.ceil(distance / options.spacing);
+    private static int calcBufferSize() {
+        int distance = Config.blockDistance();
+        return MathHelper.floor(distance / Config.spacing.get())
+            + MathHelper.ceil(distance / Config.spacing.get());
     }
 
     public synchronized void clear() {
@@ -129,27 +141,27 @@ public class ChunkedGenerator implements AutoCloseable {
         swappedTask = null;
     }
 
-    public synchronized void allocate(Config options, boolean fancy) {
-        int bufferSize = calcBufferSize(options);
+    public synchronized void allocate(boolean fancy) {
+        int bufferSize = calcBufferSize();
         if (buffer != null) {
             buffer.close();
         }
-        buffer = new Buffer(bufferSize, fancy, options.usePersistentBuffers);
+        buffer = new Buffer(bufferSize, fancy, Config.usePersistentBuffers.get());
         clear();
     }
 
-    public synchronized void update(Vector3d camera, float time, Config options, float cloudiness) {
+    public synchronized void update(Vector3d camera, float time, float cloudiness) {
         // This isn't quite right but whatever
         float timeDelta = MathHelper.clamp(time - prevTime, 0, 200);
         prevTime = time;
 
-        originX -= timeDelta * options.travelSpeed;
+        originX -= timeDelta * Config.travelSpeed.get();
         originZ = 0;
         double worldOriginX = camera.x - this.originX;
         double worldOriginZ = camera.z - this.originZ;
 
-        int chunkX = floorCloudChunk(worldOriginX, options.chunkSize);
-        int chunkZ = floorCloudChunk(worldOriginZ, options.chunkSize);
+        int chunkX = floorCloudChunk(worldOriginX, Config.chunkSize.get());
+        int chunkZ = floorCloudChunk(worldOriginZ, Config.chunkSize.get());
 
         boolean updateGeometry;
         if (queuedTask != null || runningTask != null || completedTask != null) {
@@ -158,23 +170,12 @@ public class ChunkedGenerator implements AutoCloseable {
             int prevChunkZ = prevTask.chunkZ();
             boolean chunkChanged = prevChunkX != chunkX || prevChunkZ != chunkZ;
 
-            Config prevOptions = prevTask.options();
-            boolean optionsChanged = options.fuzziness != prevOptions.fuzziness
-                || options.chunkSize != prevOptions.chunkSize
-                || options.yRange != prevOptions.yRange
-                || options.sparsity != prevOptions.sparsity
-                || options.spacing != prevOptions.spacing
-                || options.randomPlacement != prevOptions.randomPlacement
-                || options.distance != prevOptions.distance
-                || options.samplingScale != prevOptions.samplingScale
-                || options.shuffle != prevOptions.shuffle;
-
             float prevCloudiness = prevTask.cloudiness();
             boolean cloudinessChanged = Math.ceil(cloudiness * 100) != Math.ceil(prevCloudiness * 100);
 
             boolean bufferCleared = buffer.swapCount() == 0 && queuedTask == null && runningTask == null && (completedTask == null || completedTask == swappedTask);
 
-            updateGeometry = chunkChanged || optionsChanged || cloudinessChanged || bufferCleared;
+            updateGeometry = chunkChanged || configChanged || cloudinessChanged || bufferCleared;
         } else {
             updateGeometry = true;
         }
@@ -185,7 +186,7 @@ public class ChunkedGenerator implements AutoCloseable {
         }
 
         if (updateGeometry) {
-            queuedTask = new Task(chunkX, chunkZ, new Config(options), cloudiness, buffer, sampler);
+            queuedTask = new Task(chunkX, chunkZ, cloudiness, buffer, sampler);
         }
     }
 
@@ -259,7 +260,6 @@ public class ChunkedGenerator implements AutoCloseable {
         private final int id;
         private final int chunkX;
         private final int chunkZ;
-        private final Config options;
         private final float cloudiness;
         private final Buffer buffer;
         private final Sampler sampler;
@@ -271,11 +271,10 @@ public class ChunkedGenerator implements AutoCloseable {
 
         private long startTime;
 
-        public Task(int chunkX, int chunkZ, Config options, float cloudiness, Buffer buffer, Sampler sampler) {
+        public Task(int chunkX, int chunkZ, float cloudiness, Buffer buffer, Sampler sampler) {
             this.id = nextId.getAndIncrement();
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
-            this.options = options;
             this.cloudiness = cloudiness;
             this.buffer = buffer;
             this.sampler = sampler;
@@ -318,10 +317,6 @@ public class ChunkedGenerator implements AutoCloseable {
             return buffer.instanceVertexCount();
         }
 
-        public Config options() {
-            return options;
-        }
-
         public float cloudiness() {
             return cloudiness;
         }
@@ -350,39 +345,39 @@ public class ChunkedGenerator implements AutoCloseable {
             }
             startTime = Util.getMeasuringTimeMs();
 
-            int distance = options.blockDistance();
-            double spacing = options.spacing;
+            int distance = Config.blockDistance();
+            double spacing = Config.spacing.get();
 
             int gridMin = -MathHelper.floor(distance / spacing);
             int gridMax = MathHelper.ceil(distance / spacing);
-            int gridVisibilityRadiusSquared = MathHelper.ceil((distance + options.sizeXZ) / spacing);
+            int gridVisibilityRadiusSquared = MathHelper.ceil((distance + Config.sizeXZ.get()) / spacing);
             gridVisibilityRadiusSquared = gridVisibilityRadiusSquared * gridVisibilityRadiusSquared;
 
-            int chunkMin = roundToMultiple(gridMin, options.chunkSize);
-            int chunkMax = roundToMultiple(gridMax, options.chunkSize);
+            int chunkMin = roundToMultiple(gridMin, Config.chunkSize.get());
+            int chunkMax = roundToMultiple(gridMax, Config.chunkSize.get());
             int chunkLength = chunkMax - chunkMin;
-            int chunkCount = chunkLength / options.chunkSize;
+            int chunkCount = chunkLength / Config.chunkSize.get();
 
-            int gridOriginX = MathHelper.floor((chunkX * options.chunkSize) / spacing);
-            int gridOriginZ = MathHelper.floor((chunkZ * options.chunkSize) / spacing);
+            int gridOriginX = MathHelper.floor((chunkX * Config.chunkSize.get()) / spacing);
+            int gridOriginZ = MathHelper.floor((chunkZ * Config.chunkSize.get()) / spacing);
 
             int[][][] chunkGridPoints = new int[chunkCount * chunkCount][][];
             // The outer loop generates chunks
-            for (int chunkX = chunkMin; chunkX < chunkMax; chunkX += options.chunkSize) {
-                for (int chunkZ = chunkMin; chunkZ < chunkMax; chunkZ += options.chunkSize) {
+            for (int chunkX = chunkMin; chunkX < chunkMax; chunkX += Config.chunkSize.get()) {
+                for (int chunkZ = chunkMin; chunkZ < chunkMax; chunkZ += Config.chunkSize.get()) {
                     int chunkGridMinX = Math.max(chunkX, gridMin);
                     int chunkGridMinZ = Math.max(chunkZ, gridMin);
-                    int chunkGridMaxX = Math.min(chunkX + options.chunkSize, gridMax);
-                    int chunkGridMaxZ = Math.min(chunkZ + options.chunkSize, gridMax);
+                    int chunkGridMaxX = Math.min(chunkX + Config.chunkSize.get(), gridMax);
+                    int chunkGridMaxZ = Math.min(chunkZ + Config.chunkSize.get(), gridMax);
                     int chunkGridLengthX = chunkGridMaxX - chunkGridMinX;
                     int chunkGridLengthZ = chunkGridMaxZ - chunkGridMinZ;
-                    int chunkIndex = (chunkX - chunkMin) / options.chunkSize + chunkCount * ((chunkZ - chunkMin) / options.chunkSize);
+                    int chunkIndex = (chunkX - chunkMin) / Config.chunkSize.get() + chunkCount * ((chunkZ - chunkMin) / Config.chunkSize.get());
                     chunkGridPoints[chunkIndex] = new int[chunkGridLengthX * chunkGridLengthZ][];
 
                     // The outer loop generates sample points
                     for (int gridX = chunkGridMinX; gridX < chunkGridMaxX; gridX++) {
                         for (int gridZ = chunkGridMinZ; gridZ < chunkGridMaxZ; gridZ++) {
-                            if (options.sparsity > 0 && hashToFloat(11, gridX + gridOriginX, gridZ + gridOriginZ) < options.sparsity)
+                            if (Config.sparsity.get() > 0 && hashToFloat(11, gridX + gridOriginX, gridZ + gridOriginZ) < Config.sparsity.get())
                                 continue;
                             if (gridX * gridX + gridZ * gridZ >= gridVisibilityRadiusSquared) {
                                 // The point is outside the visible range
@@ -397,7 +392,7 @@ public class ChunkedGenerator implements AutoCloseable {
             }
 
             // Shuffle
-            if (options.shuffle) {
+            if (Config.shuffle.get()) {
                 for (int[][] gridPoints : chunkGridPoints) {
                     for (int s = 0; s < gridPoints.length; s++) {
                         int[] tmp = gridPoints[s];
@@ -414,23 +409,23 @@ public class ChunkedGenerator implements AutoCloseable {
 
             for (int[][] gridPoints : chunkGridPoints) {
                 int chunkCloudIndex = cloudCount;
-                float[] bounds = null;
+                double[] bounds = null;
                 for (int[] point : gridPoints) {
                     if (point == null) continue;
                     int gridX = point[0], gridZ = point[1];
 
                     int sampleX = MathHelper.floor((gridX + gridOriginX) * spacing);
                     int sampleZ = MathHelper.floor((gridZ + gridOriginZ) * spacing);
-                    float value = sampler.sample(sampleX, sampleZ, cloudiness, options.fuzziness, options.samplingScale);
+                    double value = sampler.sample(sampleX, sampleZ, cloudiness, Config.fuzziness.get(), Config.samplingScale.get());
                     if (value <= 0) continue;
 
-                    float x = (float) (sampleX - this.chunkX * options.chunkSize + sampler.randomOffsetX(sampleX, sampleZ) * options.randomPlacement * spacing);
+                    double x = (float) (sampleX - this.chunkX * Config.chunkSize.get() + sampler.randomOffsetX(sampleX, sampleZ) * Config.randomPlacement.get() * spacing);
                     // TODO: cloudPointiness value
-                    float y = options.yRange * value * value;
-                    float z = (float) (sampleZ - this.chunkZ * options.chunkSize + sampler.randomOffsetZ(sampleX, sampleZ) * options.randomPlacement * spacing);
+                    double y = Config.yRange.get() * value * value;
+                    double z = (float) (sampleZ - this.chunkZ * Config.chunkSize.get() + sampler.randomOffsetZ(sampleX, sampleZ) * Config.randomPlacement.get() * spacing);
 
                     if (bounds == null) {
-                        bounds = new float[]{x, y, z, x, y, z};
+                        bounds = new double[]{x, y, z, x, y, z};
                     } else {
                         if (x < bounds[0]) bounds[0] = x;
                         if (y < bounds[1]) bounds[1] = y;
@@ -446,7 +441,7 @@ public class ChunkedGenerator implements AutoCloseable {
 
                 if (chunkCloudIndex != cloudCount && bounds != null) {
                     Box boundingBox = new Box(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
-                        .offset(this.chunkX * options.chunkSize, 0, this.chunkZ * options.chunkSize);
+                        .offset(this.chunkX * Config.chunkSize.get(), 0, this.chunkZ * Config.chunkSize.get());
                     chunks.add(new ChunkIndex(chunkCloudIndex, cloudCount - chunkCloudIndex, boundingBox));
                 }
 

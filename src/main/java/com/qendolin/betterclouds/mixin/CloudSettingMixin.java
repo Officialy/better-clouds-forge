@@ -1,5 +1,6 @@
 package com.qendolin.betterclouds.mixin;
 
+import com.qendolin.betterclouds.Config;
 import com.qendolin.betterclouds.Main;
 import net.minecraft.client.option.CloudRenderMode;
 import net.minecraft.client.option.GameOptions;
@@ -25,7 +26,7 @@ public abstract class CloudSettingMixin {
 
     @Inject(at = @At("HEAD"), method = "getCloudRenderModeValue", cancellable = true)
     private void overrideCloudSetting(CallbackInfoReturnable<CloudRenderMode> cir) {
-        if (!Main.getConfig().cloudOverride) return;
+        if (!Config.cloudOverride.get()) return;
         if (viewDistance.getValue() < 4) {
             return;
         }

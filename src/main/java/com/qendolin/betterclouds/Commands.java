@@ -98,16 +98,9 @@ public class Commands {
 
 
         dispatcher.register(literal(Main.MODID + ":config")
-                .then(literal("open").executes(context -> {
-                    MinecraftClient client = MinecraftClient.getInstance();//context.getSource().getClient();
-                    // The chat screen will call setScreen(null) after the command handler
-                    // which would override our call, so we delay it
-                    client.send(() -> client.setScreen(ConfigGUI.create(null)));
-                    return 1;
-                }))
                 .then(literal("reload").executes(context -> {
                     Main.debugChatMessage("reloadingConfig");
-                    Main.getConfigInstance().load();
+//    todo                Main.getConfigInstance().load();
                     Main.debugChatMessage("configReloaded");
                     return 1;
                 }))
@@ -115,9 +108,9 @@ public class Commands {
                         .then(argument("enable", BoolArgumentType.bool())
                                 .executes(context -> {
                                     boolean enable = BoolArgumentType.getBool(context, "enable");
-                                    if (Main.getConfig().gpuIncompatibleMessageEnabled == enable) return 1;
-                                    Main.getConfig().gpuIncompatibleMessageEnabled = enable;
-                                    Main.getConfigInstance().save();
+                                    if (Config.gpuIncompatibleMessageEnabled.get() == enable) return 1;
+                                    Config.gpuIncompatibleMessageEnabled.set(enable);
+//                                    Main.getConfigInstance().save();
                                     Main.debugChatMessage("updatedPreferences");
                                     return 1;
                                 }))));

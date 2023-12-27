@@ -1,6 +1,5 @@
 package com.qendolin.betterclouds.mixin;
 
-import com.qendolin.betterclouds.gui.ConfigScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -24,7 +23,7 @@ public abstract class TabButtonWidgetMixin extends ClickableWidget {
     private void onRenderWidget(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         MinecraftClient client = MinecraftClient.getInstance();
         // I'm gonna go to hell for this
-        if (client == null || client.world == null || !(client.currentScreen instanceof ConfigScreen)) {
+        if (client == null || client.world == null) {
             return;
         }
         ci.cancel();

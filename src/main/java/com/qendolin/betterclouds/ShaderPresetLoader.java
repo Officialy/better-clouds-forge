@@ -21,10 +21,10 @@ import java.util.concurrent.Executor;
 
 public class ShaderPresetLoader {//implements SimpleResourceReloadListener<Map<String, Config.ShaderConfigPreset>> {
     private static final Gson GSON = new GsonBuilder()
-        .setLenient()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .registerTypeAdapter(Config.ShaderConfigPreset.class, Config.ShaderConfigPreset.INSTANCE_CREATOR)
-        .create();
+            .setLenient()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .registerTypeAdapter(Config.ShaderConfigPreset.class, Config.ShaderConfigPreset.INSTANCE_CREATOR)
+            .create();
     public static final Identifier ID = new Identifier(Main.MODID, "shader_presets");
     public static final Identifier RESOURCE_ID = new Identifier(Main.MODID, "betterclouds/shader_presets.json");
     public static final ShaderPresetLoader INSTANCE = new ShaderPresetLoader();
@@ -41,7 +41,7 @@ public class ShaderPresetLoader {//implements SimpleResourceReloadListener<Map<S
         return ID;
     }*/
 
-//    @Override
+    //    @Override
     public CompletableFuture<Map<String, Config.ShaderConfigPreset>> load(ResourceManager manager, Profiler profiler, Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             Map<String, Config.ShaderConfigPreset> mergedPresets = new HashMap<>();
@@ -68,12 +68,12 @@ public class ShaderPresetLoader {//implements SimpleResourceReloadListener<Map<S
         });
     }
 
-//    @Override
+    //    @Override
     public CompletableFuture<Void> apply(Map<String, Config.ShaderConfigPreset> data, ResourceManager manager, Profiler profiler, Executor executor) {
         presets = data;
-        if (Main.getConfig() != null) {
-            Main.getConfig().loadDefaultPresets();
-        }
+//        if (Main.getConfig() != null) {
+        Config.loadDefaultPresets();
+//        }
         return CompletableFuture.completedFuture(null);
     }
 }

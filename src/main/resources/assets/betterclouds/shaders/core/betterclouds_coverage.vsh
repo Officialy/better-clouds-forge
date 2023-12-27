@@ -1,14 +1,19 @@
 #version 330 core
+
 #extension GL_ARB_separate_shader_objects : enable
+
 // Geometry attributes
 #define SIZE vec3(_SIZE_XZ_, _SIZE_Y_, _SIZE_XZ_)
 #define NEAR_VISIBILITY_START 10.0 + _SIZE_XZ_
 #define NEAR_VISIBILITY_END 20.0 + _SIZE_XZ_
 #define FAR_VISIBILITY_EDGE _VISIBILITY_EDGE_
+
 #define POSITIONAL_COLORING _POSITIONAL_COLORING_
+
 layout(location = 0) in vec3 in_pos;
 layout(location = 1) in vec3 in_vert;
 layout(location = 2) in vec3 in_normal;
+
 uniform sampler2D u_noise_texture;
 uniform mat4 u_mvp_matrix;
 // x, y, z offset to the local origin
@@ -37,6 +42,7 @@ void main() {
     float scaleFalloff = mix(1.0, u_miscellaneous.x, pow(length(localWorldPosition.xz), 2.0) / pow(u_bounding_box.z, 2.0));
     vec3 vertexPos = in_pos;
     vertexPos.y *= scaleFalloff;
+
     pass_opacity =
     smoothstep(NEAR_VISIBILITY_START, NEAR_VISIBILITY_END, length(localWorldPosition))
     * smoothstep(u_bounding_box.z, u_bounding_box.z-FAR_VISIBILITY_EDGE,
@@ -61,5 +67,6 @@ void main() {
     pass_color.g = 1.0;
     #endif
     pass_color.b = texture(u_noise_texture, localWorldPosition.xz / 1024.0).g;
+
     gl_Position = u_mvp_matrix * vec4(scale * in_vert + vertexPos, 1.0);
 }

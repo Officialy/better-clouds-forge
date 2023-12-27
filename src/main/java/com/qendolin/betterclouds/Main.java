@@ -2,15 +2,16 @@ package com.qendolin.betterclouds;
 
 import com.qendolin.betterclouds.clouds.Debug;
 import com.qendolin.betterclouds.compat.GLCompat;
-import com.qendolin.betterclouds.compat.GsonConfigInstanceBuilderDuck;
-import dev.isxander.yacl3.config.GsonConfigInstance;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.neoforged.fml.loading.FMLLoader;
@@ -18,16 +19,9 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.lwjgl.opengl.GL32;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -39,36 +33,18 @@ public class Main {
     public static final NamedLogger LOGGER = new NamedLogger(LogManager.getLogger(MODID), !IS_DEV);
 
     public static GLCompat glCompat;
-//    public static Version version;
 
-    private static final GsonConfigInstance<Config> CONFIG;
-    private static final Path CONFIG_PATH = Path.of("config/betterclouds-v1.json");
-
-    static {
-        if (IS_CLIENT) {
-            GsonConfigInstance.Builder<Config> builder = GsonConfigInstance
-                    .createBuilder(Config.class)
-                    .setPath(CONFIG_PATH);
-
-            if (builder instanceof GsonConfigInstanceBuilderDuck) {
-                //noinspection unchecked
-                GsonConfigInstanceBuilderDuck<Config> duck = (GsonConfigInstanceBuilderDuck<Config>) builder;
-                builder = duck.betterclouds$appendGsonBuilder(b -> b
-                        .setLenient().setPrettyPrinting()
-                        .registerTypeAdapter(Config.class, Config.INSTANCE_CREATOR)
-                        .registerTypeAdapter(Config.ShaderConfigPreset.class, Config.ShaderConfigPreset.INSTANCE_CREATOR));
-            }
-            CONFIG = builder.build();
-        } else {
-            CONFIG = null;
-        }
-
-    }
+    private static final Config CONFIG = new Config();
 
     public Main() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(this::onClientSetup);
         NeoForge.EVENT_BUS.register(this);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, CONFIG.GENERAL_SPEC, "betterclouds-v1.toml");
+    }
+
+    public static Config getConfig() {
+        return CONFIG;
     }
 
     public static void initGlCompat() {
@@ -95,10 +71,6 @@ public class Main {
         }
     }
 
-    public static Config getConfig() {
-        return CONFIG.getConfig();
-    }
-
     public static boolean isProfilingEnabled() {
         return Debug.profileInterval > 0;
     }
@@ -121,13 +93,7 @@ public class Main {
 //        return version;
 //    }
 
-    public static GsonConfigInstance<Config> getConfigInstance() {
-        return CONFIG;
-    }
-
     public void onClientSetup(FMLClientSetupEvent event) {
-        loadConfig();
-
 //        ClientLifecycleEvents.CLIENT_STARTED.register(client -> glCompat.enableDebugOutputSynchronous());
 //        glCompat.enableDebugOutputSynchronous();
 
@@ -149,45 +115,8 @@ public class Main {
         }
     }
 
-    private void loadConfig() {
-        assert CONFIG != null;
-
-        try {
-            CONFIG.load();
-            return;
-        } catch (Exception loadException) {
-            LOGGER.error("Failed to load config: ", loadException);
-        }
-
-        File file = CONFIG.getPath().toFile();
-        if (file.exists() && file.isFile()) {
-            String backupName = FilenameUtils.getBaseName(file.getName()) +
-                    "-backup-" + new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) +
-                    "." + FilenameUtils.getExtension(file.getName());
-            Path backup = Path.of(CONFIG.getPath().toAbsolutePath().getParent().toString(), backupName);
-            try {
-                Files.copy(file.toPath(), backup, StandardCopyOption.REPLACE_EXISTING);
-                LOGGER.info("Created config backup at: {}", backup);
-            } catch (Exception backupException) {
-                LOGGER.error("Failed to create config backup: ", backupException);
-            }
-        } else if (file.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            file.delete();
-            LOGGER.info("Deleted old config");
-        }
-
-        try {
-            CONFIG.save();
-            LOGGER.info("Created new config");
-            CONFIG.load();
-        } catch (Exception loadException) {
-            LOGGER.error("Failed to load config again, please report this issue: ", loadException);
-        }
-    }
-
     public static void sendGpuIncompatibleChatMessage() {
-        if (!getConfig().gpuIncompatibleMessageEnabled) return;
+        if (!Config.gpuIncompatibleMessageEnabled.get()) return;
         debugChatMessage(
                 Text.translatable(debugChatMessageKey("gpuIncompatible"))
                         .append(Text.literal("\n - "))
@@ -198,7 +127,7 @@ public class Main {
     }
 
     public static void sendGpuPartiallyIncompatibleChatMessage() {
-        if (!getConfig().gpuIncompatibleMessageEnabled) return;
+        if (!Config.gpuIncompatibleMessageEnabled.get()) return;
         debugChatMessage(
                 Text.translatable(debugChatMessageKey("gpuPartiallyIncompatible"))
                         .append(Text.literal("\n - "))
